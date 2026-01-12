@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* Global button cursor */
+button {
+  cursor: pointer;
+}
+
+/* Custom utilities */
+.glass {
+  background: rgba(24, 24, 27, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(63, 63, 70, 0.5);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+}
+
+/* Animate in utility */
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+.slide-in-from-top-4 {
+  animation: slideInFromTop 0.3s ease-out;
+}
