@@ -3,7 +3,8 @@
     "allow": [
       "WebFetch(domain:hub.nuxt.com)",
       "Bash(bun add:*)",
-      "Bash(bun run db:generate:*)"
+      "Bash(bun run db:generate:*)",
+      "Bash(bun run build)"
     ]
   }
 }
