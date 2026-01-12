@@ -47,6 +47,10 @@ export default defineEventHandler(async (event) => {
       .where(eq(schema.bodyMetrics.id, existing.id))
       .returning();
 
+    if (!updated) {
+      throw createError({ statusCode: 500, message: 'Failed to update metrics' });
+    }
+
     return {
       id: updated.id,
       date: updated.date,
@@ -86,6 +90,10 @@ export default defineEventHandler(async (event) => {
     shoulders: metricData.shoulders,
     notes: metricData.notes,
   }).returning();
+
+  if (!metric) {
+    throw createError({ statusCode: 500, message: 'Failed to create metrics' });
+  }
 
   return {
     id: metric.id,

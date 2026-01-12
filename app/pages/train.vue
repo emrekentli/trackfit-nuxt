@@ -223,10 +223,10 @@ const groupedByMuscle = computed(() => {
 // Check if this is the first exercise in a superset group within a muscle group
 const isFirstInSupersetWithinGroup = (groupExercises: Exercise[], index: number) => {
   const current = groupExercises[index];
-  if (!current.supersetGroup) return false;
+  if (!current || !current.supersetGroup) return false;
   if (index === 0) return true;
   const prev = groupExercises[index - 1];
-  return prev.supersetGroup !== current.supersetGroup;
+  return !prev || prev.supersetGroup !== current.supersetGroup;
 };
 
 // Get completed count for a muscle group

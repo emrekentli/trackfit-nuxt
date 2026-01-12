@@ -26,6 +26,13 @@ export default defineEventHandler(async (event) => {
     imageUrl: imageUrl || null,
   }).returning();
 
+  if (!exercise) {
+    throw createError({
+      statusCode: 500,
+      message: 'Failed to create exercise',
+    });
+  }
+
   return {
     id: exercise.id,
     name: exercise.name,

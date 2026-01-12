@@ -35,6 +35,10 @@ export default defineEventHandler(async (event) => {
       .where(eq(schema.workoutLogs.id, existing.id))
       .returning();
 
+    if (!updated) {
+      throw createError({ statusCode: 500, message: 'Failed to update log' });
+    }
+
     return {
       id: updated.id,
       exerciseId: updated.exerciseId,
@@ -50,6 +54,10 @@ export default defineEventHandler(async (event) => {
     date,
     weight: weightInGrams,
   }).returning();
+
+  if (!log) {
+    throw createError({ statusCode: 500, message: 'Failed to create log' });
+  }
 
   return {
     id: log.id,

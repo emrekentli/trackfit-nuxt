@@ -34,6 +34,13 @@ export default defineEventHandler(async (event) => {
     name,
   }).returning();
 
+  if (!user) {
+    throw createError({
+      statusCode: 500,
+      message: 'Failed to create user',
+    });
+  }
+
   // Set session
   setUserSession(event, user.id);
 

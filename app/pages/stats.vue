@@ -416,8 +416,9 @@ const newMetric = ref({
 
 // Set default selected exercise
 watchEffect(() => {
-  if (exercises.value.length > 0 && !selectedExercise.value) {
-    selectedExercise.value = exercises.value[0].id;
+  const firstExercise = exercises.value[0];
+  if (exercises.value.length > 0 && !selectedExercise.value && firstExercise) {
+    selectedExercise.value = firstExercise.id;
   }
 });
 
@@ -471,7 +472,7 @@ const latestMetric = computed(() => bodyMetrics.value[0] || null);
 
 const bodyWeightChartData = computed(() => {
   const sortedMetrics = [...bodyMetrics.value]
-    .filter((m) => m.weight)
+    .filter((m): m is typeof m & { weight: number } => m.weight != null)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return {
@@ -482,7 +483,7 @@ const bodyWeightChartData = computed(() => {
     datasets: [
       {
         label: 'Kilo (KG)',
-        data: sortedMetrics.map((m) => m.weight),
+        data: sortedMetrics.map((m) => m.weight) as number[],
         borderColor: '#10b981',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         fill: true,
@@ -501,7 +502,7 @@ const groupedLogs = computed(() => {
 
   logs.value.forEach((log) => {
     if (!groups[log.date]) groups[log.date] = [];
-    groups[log.date].push(log);
+    groups[log.date]!.push(log);
   });
 
   return Object.entries(groups)
@@ -512,7 +513,9 @@ const groupedLogs = computed(() => {
 const getLatestWeight = (exerciseId: string) => {
   const exLogs = logs.value.filter((l) => l.exerciseId === exerciseId);
   if (exLogs.length === 0) return '--';
-  const latest = exLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  const sorted = exLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const latest = sorted[0];
+  if (!latest) return '--';
   return `${latest.weight} KG`;
 };
 
@@ -530,7 +533,8 @@ const getExerciseName = (exerciseId: string) => {
 const formatDate = (dateStr: string) => {
   const [year, month, day] = dateStr.split('-');
   const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-  return `${day} ${months[parseInt(month) - 1]} ${year}`;
+  const monthName = month ? months[parseInt(month) - 1] ?? '' : '';
+  return `${day} ${monthName} ${year}`;
 };
 
 const getTotalVolume = (dayLogs: typeof logs.value) => {
@@ -565,7 +569,7 @@ const handleImport = async (event: Event) => {
 };
 
 const saveMetric = async () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0] as string;
   await updateBodyMetric({
     date: today,
     ...newMetric.value,

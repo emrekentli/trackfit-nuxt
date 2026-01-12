@@ -4,7 +4,9 @@
       "WebFetch(domain:hub.nuxt.com)",
       "Bash(bun add:*)",
       "Bash(bun run db:generate:*)",
-      "Bash(bun run build)"
+      "Bash(bun run build)",
+      "Bash(bunx nuxi typecheck:*)",
+      "Bash(npx nuxi typecheck:*)"
     ]
   }
 }
