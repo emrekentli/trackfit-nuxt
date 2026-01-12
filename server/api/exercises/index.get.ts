@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import { useDB, schema } from '~~/server/database';
 import { requireAuth } from '~~/server/utils/auth';
 
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const exercises = await db.query.exercises.findMany({
     where: eq(schema.exercises.userId, userId),
-    orderBy: schema.exercises.createdAt,
+    orderBy: asc(schema.exercises.orderIndex),
   });
 
   return exercises.map((ex) => ({
@@ -19,5 +19,7 @@ export default defineEventHandler(async (event) => {
     targetSets: ex.targetSets || 3,
     targetReps: ex.targetReps || '10',
     imageUrl: ex.imageUrl || undefined,
+    supersetGroup: ex.supersetGroup || null,
+    orderIndex: ex.orderIndex || 0,
   }));
 });
