@@ -14,6 +14,7 @@ interface ApiExercise {
   targetSets: number;
   targetReps: string;
   imageUrl?: string;
+  muscleGroup?: string | null;
   supersetGroup?: string | null;
   orderIndex?: number;
 }
@@ -86,6 +87,7 @@ export function useAppState() {
         targetSets: ex.targetSets,
         targetReps: ex.targetReps,
         imageUrl: ex.imageUrl,
+        muscleGroup: ex.muscleGroup,
         supersetGroup: ex.supersetGroup,
         orderIndex: ex.orderIndex,
       }));
@@ -196,6 +198,7 @@ export function useAppState() {
       targetSets: data.targetSets,
       targetReps: data.targetReps,
       imageUrl: data.imageUrl,
+      muscleGroup: data.muscleGroup,
       supersetGroup: data.supersetGroup,
       orderIndex: data.orderIndex,
     });

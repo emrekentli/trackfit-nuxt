@@ -20,6 +20,7 @@ export const exercises = pgTable('exercises', {
   targetSets: integer('target_sets').default(3),
   targetReps: varchar('target_reps', { length: 20 }).default('10'),
   imageUrl: text('image_url'),
+  muscleGroup: varchar('muscle_group', { length: 50 }), // Chest, Back, Shoulders, Arms, Legs, Abs, etc.
   supersetGroup: varchar('superset_group', { length: 50 }), // Group exercises as superset (e.g., "A", "B")
   orderIndex: integer('order_index').default(0), // For ordering exercises within a day
   createdAt: timestamp('created_at').defaultNow().notNull(),

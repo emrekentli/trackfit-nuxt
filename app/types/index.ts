@@ -1,5 +1,7 @@
 export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 
+export type MuscleGroup = 'Shoulders' | 'Chest' | 'Back' | 'Arms' | 'Legs' | 'Abs' | 'Triceps' | 'Biceps';
+
 export interface Exercise {
   id: string;
   name: string;
@@ -8,6 +10,7 @@ export interface Exercise {
   targetSets: number;
   targetReps: string;
   imageUrl?: string;
+  muscleGroup?: MuscleGroup | string | null;
   supersetGroup?: string | null;
   orderIndex?: number;
 }

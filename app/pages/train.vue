@@ -47,94 +47,109 @@
       </p>
     </div>
 
-    <!-- Tabular List -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
-      <div class="grid grid-cols-[1fr_60px_70px_80px] border-b border-zinc-800 bg-zinc-950 px-4 py-3">
-        <div class="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Egzersiz</div>
-        <div class="text-[8px] font-black text-zinc-500 uppercase tracking-widest text-center">Hedef</div>
-        <div class="text-[8px] font-black text-zinc-500 uppercase tracking-widest text-center">Önceki</div>
-        <div class="text-[8px] font-black text-zinc-500 uppercase tracking-widest text-right">Kilo</div>
-      </div>
+    <!-- Empty State -->
+    <div v-if="todaysExercises.length === 0" class="bg-zinc-900 border border-zinc-800 rounded-3xl p-12 text-center space-y-2">
+      <i class="fa-solid fa-moon text-zinc-800 text-2xl"></i>
+      <p class="text-zinc-600 text-[10px] font-bold uppercase tracking-widest">Aktif Dinlenme</p>
+    </div>
 
-      <div v-if="todaysExercises.length === 0" class="p-12 text-center space-y-2">
-        <i class="fa-solid fa-moon text-zinc-800 text-2xl"></i>
-        <p class="text-zinc-600 text-[10px] font-bold uppercase tracking-widest">Aktif Dinlenme</p>
-      </div>
-
-      <div v-else class="divide-y divide-zinc-800/50">
-        <template v-for="(ex, index) in todaysExercises" :key="ex.id">
-          <!-- Superset Header -->
-          <div
-            v-if="ex.supersetGroup && isFirstInSuperset(index)"
-            class="bg-gradient-to-r from-fuchsia-600/20 to-violet-600/20 px-4 py-2 flex items-center gap-2"
-          >
-            <i class="fa-solid fa-link text-fuchsia-400 text-xs"></i>
-            <span class="text-[9px] font-black text-fuchsia-400 uppercase tracking-widest">
-              Superset {{ ex.supersetGroup }}
-            </span>
+    <!-- Grouped by Muscle Group -->
+    <template v-else>
+      <div v-for="group in groupedByMuscle" :key="group.muscleGroup" class="space-y-0">
+        <!-- Muscle Group Header -->
+        <div class="bg-gradient-to-r from-zinc-800 to-zinc-900 border border-zinc-700 rounded-t-2xl px-4 py-3 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-violet-600/20 flex items-center justify-center">
+            <i :class="`fa-solid ${MUSCLE_GROUP_ICONS[group.muscleGroup] || 'fa-dumbbell'} text-violet-400 text-sm`"></i>
           </div>
+          <div class="flex-1">
+            <p class="text-[11px] font-black text-white uppercase tracking-wider">
+              {{ MUSCLE_GROUP_LABELS[group.muscleGroup] || group.muscleGroup }}
+            </p>
+            <p class="text-[9px] font-medium text-zinc-500">{{ group.exercises.length }} egzersiz</p>
+          </div>
+          <div class="text-right">
+            <p class="text-[10px] font-black text-emerald-400">{{ getGroupCompletedCount(group.exercises) }}/{{ group.exercises.length }}</p>
+          </div>
+        </div>
 
-          <div class="group relative">
-            <!-- Superset indicator bar -->
-            <div
-              v-if="ex.supersetGroup"
-              class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-fuchsia-500 to-violet-500"
-            ></div>
+        <!-- Exercises in Group -->
+        <div class="bg-zinc-900 border border-t-0 border-zinc-800 rounded-b-2xl overflow-hidden mb-4">
+          <div class="divide-y divide-zinc-800/50">
+            <template v-for="(ex, index) in group.exercises" :key="ex.id">
+              <!-- Superset Header -->
+              <div
+                v-if="ex.supersetGroup && isFirstInSupersetWithinGroup(group.exercises, index)"
+                class="bg-gradient-to-r from-fuchsia-600/20 to-violet-600/20 px-4 py-2 flex items-center gap-2"
+              >
+                <i class="fa-solid fa-link text-fuchsia-400 text-xs"></i>
+                <span class="text-[9px] font-black text-fuchsia-400 uppercase tracking-widest">
+                  Superset
+                </span>
+              </div>
 
-            <div
-              :class="[
-                'grid grid-cols-[1fr_60px_70px_80px] items-center px-4 py-4 hover:bg-zinc-800/30 transition-colors',
-                ex.supersetGroup ? 'pl-5' : ''
-              ]"
-            >
-              <div class="min-w-0 pr-2">
-                <div class="flex items-center gap-1.5">
-                  <h4
-                    class="text-[11px] font-black text-white uppercase italic truncate group-hover:text-violet-400 transition-colors tracking-tighter"
-                  >
-                    {{ ex.name }}
-                  </h4>
-                  <span
-                    v-if="isPR(ex.id, getTodayLog(ex.id)?.weight || 0)"
-                    class="bg-emerald-500 text-[7px] font-black px-1 rounded-sm text-black animate-bounce"
-                  >
-                    PR
-                  </span>
+              <div class="group relative">
+                <!-- Superset indicator bar -->
+                <div
+                  v-if="ex.supersetGroup"
+                  class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-fuchsia-500 to-violet-500"
+                ></div>
+
+                <div
+                  :class="[
+                    'grid grid-cols-[1fr_60px_70px_80px] items-center px-4 py-4 hover:bg-zinc-800/30 transition-colors',
+                    ex.supersetGroup ? 'pl-5' : ''
+                  ]"
+                >
+                  <div class="min-w-0 pr-2">
+                    <div class="flex items-center gap-1.5">
+                      <h4
+                        class="text-[11px] font-black text-white uppercase italic truncate group-hover:text-violet-400 transition-colors tracking-tighter"
+                      >
+                        {{ ex.name }}
+                      </h4>
+                      <span
+                        v-if="isPR(ex.id, getTodayLog(ex.id)?.weight || 0)"
+                        class="bg-emerald-500 text-[7px] font-black px-1 rounded-sm text-black animate-bounce"
+                      >
+                        PR
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="text-[9px] font-black text-zinc-500 text-center">
+                    {{ ex.targetSets }}x{{ ex.targetReps }}
+                  </div>
+
+                  <div class="text-[10px] font-black text-zinc-400 text-center truncate">
+                    {{ getPreviousLog(ex.id)?.weight ?? '--' }}
+                  </div>
+
+                  <div class="relative pl-2">
+                    <input
+                      type="number"
+                      step="0.25"
+                      placeholder="0.0"
+                      :value="getTodayLog(ex.id)?.weight ?? ''"
+                      @blur="(e) => handleWeightUpdate(ex.id, (e.target as HTMLInputElement).value)"
+                      :class="[
+                        'w-full bg-zinc-950/50 border rounded-lg py-2 px-2 text-[11px] font-black text-right outline-none transition-all',
+                        getTodayLog(ex.id)
+                          ? 'border-emerald-500/30 text-emerald-400'
+                          : 'border-zinc-800 focus:border-violet-500 text-zinc-100'
+                      ]"
+                    />
+                    <div
+                      v-if="getTodayLog(ex.id)"
+                      class="absolute -left-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+                    ></div>
+                  </div>
                 </div>
               </div>
-
-              <div class="text-[9px] font-black text-zinc-500 text-center">
-                {{ ex.targetSets }}x{{ ex.targetReps }}
-              </div>
-
-              <div class="text-[10px] font-black text-zinc-400 text-center truncate">
-                {{ getPreviousLog(ex.id)?.weight ?? '--' }}
-              </div>
-
-              <div class="relative pl-2">
-                <input
-                  type="number"
-                  step="0.25"
-                  placeholder="0.0"
-                  :value="getTodayLog(ex.id)?.weight ?? ''"
-                  @blur="(e) => handleWeightUpdate(ex.id, (e.target as HTMLInputElement).value)"
-                  :class="[
-                    'w-full bg-zinc-950/50 border rounded-lg py-2 px-2 text-[11px] font-black text-right outline-none transition-all',
-                    getTodayLog(ex.id)
-                      ? 'border-emerald-500/30 text-emerald-400'
-                      : 'border-zinc-800 focus:border-violet-500 text-zinc-100'
-                  ]"
-                />
-                <div
-                  v-if="getTodayLog(ex.id)"
-                  class="absolute -left-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"
-                ></div>
-              </div>
-            </div>
+            </template>
           </div>
-        </template>
+        </div>
       </div>
-    </div>
+    </template>
 
     <!-- Progress Summary -->
     <div v-if="todaysExercises.length > 0" class="grid grid-cols-3 gap-3">
@@ -161,8 +176,8 @@
 </template>
 
 <script setup lang="ts">
-import type { DayOfWeek } from '~/types';
-import { DAYS, DAY_LABELS } from '~/constants';
+import type { DayOfWeek, Exercise } from '~/types';
+import { DAYS, DAY_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ICONS } from '~/constants';
 
 const { exercises, logs, updateLog, user } = useAppState();
 
@@ -186,13 +201,37 @@ const todaysExercises = computed(() => {
     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 });
 
-// Check if this is the first exercise in a superset group
-const isFirstInSuperset = (index: number) => {
-  const current = todaysExercises.value[index];
+// Group exercises by muscle group while preserving order
+const groupedByMuscle = computed(() => {
+  const groups: { muscleGroup: string; exercises: Exercise[] }[] = [];
+  let currentGroup: { muscleGroup: string; exercises: Exercise[] } | null = null;
+
+  for (const ex of todaysExercises.value) {
+    const muscle = ex.muscleGroup || 'Other';
+
+    if (!currentGroup || currentGroup.muscleGroup !== muscle) {
+      currentGroup = { muscleGroup: muscle, exercises: [] };
+      groups.push(currentGroup);
+    }
+
+    currentGroup.exercises.push(ex);
+  }
+
+  return groups;
+});
+
+// Check if this is the first exercise in a superset group within a muscle group
+const isFirstInSupersetWithinGroup = (groupExercises: Exercise[], index: number) => {
+  const current = groupExercises[index];
   if (!current.supersetGroup) return false;
   if (index === 0) return true;
-  const prev = todaysExercises.value[index - 1];
+  const prev = groupExercises[index - 1];
   return prev.supersetGroup !== current.supersetGroup;
+};
+
+// Get completed count for a muscle group
+const getGroupCompletedCount = (groupExercises: Exercise[]) => {
+  return groupExercises.filter((ex) => getTodayLog(ex.id)).length;
 };
 
 // Streak Calculation

@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
     targetSets: ex.targetSets || 3,
     targetReps: ex.targetReps || '10',
     imageUrl: ex.imageUrl || undefined,
+    muscleGroup: ex.muscleGroup || null,
     supersetGroup: ex.supersetGroup || null,
     orderIndex: ex.orderIndex || 0,
   }));
