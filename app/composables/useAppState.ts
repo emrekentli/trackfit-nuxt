@@ -1,4 +1,4 @@
-import type { Exercise, WorkoutLog, User, BodyMetric } from '~/types';
+import type { Exercise, WorkoutLog, User, BodyMetric, LibraryExercise, MuscleGroup } from '~/types';
 
 interface ApiUser {
   id: string;
@@ -50,6 +50,7 @@ const user = ref<User | null>(null);
 const exercises = ref<Exercise[]>([]);
 const logs = ref<WorkoutLog[]>([]);
 const bodyMetrics = ref<BodyMetric[]>([]);
+const exerciseLibrary = ref<LibraryExercise[]>([]);
 const isLoading = ref(false);
 const isInitialized = ref(false);
 
@@ -87,7 +88,7 @@ export function useAppState() {
         targetSets: ex.targetSets,
         targetReps: ex.targetReps,
         imageUrl: ex.imageUrl,
-        muscleGroup: ex.muscleGroup,
+        muscleGroup: ex.muscleGroup as MuscleGroup | null | undefined,
         supersetGroup: ex.supersetGroup,
         orderIndex: ex.orderIndex,
       }));
@@ -120,6 +121,16 @@ export function useAppState() {
       bodyMetrics.value = data;
     } catch (e) {
       console.error('Failed to fetch body metrics:', e);
+    }
+  };
+
+  // Fetch exercise library (public, no auth required)
+  const fetchExerciseLibrary = async () => {
+    try {
+      const data = await $fetch<LibraryExercise[]>('/api/exercise-library');
+      exerciseLibrary.value = data;
+    } catch (e) {
+      console.error('Failed to fetch exercise library:', e);
     }
   };
 
@@ -198,7 +209,7 @@ export function useAppState() {
       targetSets: data.targetSets,
       targetReps: data.targetReps,
       imageUrl: data.imageUrl,
-      muscleGroup: data.muscleGroup,
+      muscleGroup: data.muscleGroup as MuscleGroup | null | undefined,
       supersetGroup: data.supersetGroup,
       orderIndex: data.orderIndex,
     });
@@ -211,9 +222,33 @@ export function useAppState() {
     logs.value = logs.value.filter((log) => log.exerciseId !== id);
   };
 
+  // Update exercise
+  const updateExercise = async (id: string, updates: Partial<Exercise>) => {
+    const data = await $fetch<ApiExercise>(`/api/exercises/${id}`, {
+      method: 'PUT',
+      body: updates,
+    });
+
+    const index = exercises.value.findIndex((ex) => ex.id === id);
+    if (index > -1) {
+      exercises.value[index] = {
+        id: data.id,
+        name: data.name,
+        day: data.day as Exercise['day'],
+        notes: data.notes,
+        targetSets: data.targetSets,
+        targetReps: data.targetReps,
+        imageUrl: data.imageUrl,
+        muscleGroup: data.muscleGroup as MuscleGroup | null | undefined,
+        supersetGroup: data.supersetGroup,
+        orderIndex: data.orderIndex,
+      };
+    }
+  };
+
   // Update log
   const updateLog = async (exerciseId: string, weight: number) => {
-    if (isNaN(weight)) return;
+    if (Number.isNaN(weight)) return;
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -292,6 +327,7 @@ export function useAppState() {
     exercises: computed(() => exercises.value),
     logs: computed(() => logs.value),
     bodyMetrics: computed(() => bodyMetrics.value),
+    exerciseLibrary: computed(() => exerciseLibrary.value),
     isLoading: computed(() => isLoading.value),
     isInitialized: computed(() => isInitialized.value),
 
@@ -301,6 +337,7 @@ export function useAppState() {
     register,
     logout,
     addExercise,
+    updateExercise,
     removeExercise,
     updateLog,
     updateBodyMetric,
@@ -309,5 +346,6 @@ export function useAppState() {
     fetchExercises,
     fetchLogs,
     fetchBodyMetrics,
+    fetchExerciseLibrary,
   };
 }

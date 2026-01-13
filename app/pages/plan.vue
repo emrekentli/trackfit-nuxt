@@ -2,22 +2,46 @@
   <div class="space-y-6 pb-20">
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-black text-zinc-100 tracking-tight uppercase italic">Program</h2>
-      <button
-        @click="isAdding = !isAdding"
-        :class="[
-          'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
-          isAdding ? 'bg-zinc-800 text-zinc-400' : 'bg-violet-600 text-white shadow-lg shadow-violet-600/20'
-        ]"
-      >
-        <i :class="`fa-solid ${isAdding ? 'fa-xmark' : 'fa-plus'}`"></i>
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          @click="showLibraryModal = true"
+          class="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500"
+          title="Kütüphaneden Seç"
+        >
+          <i class="fa-solid fa-book"></i>
+        </button>
+        <button
+          @click="showForm ? resetForm() : (isAdding = true)"
+          :class="[
+            'w-12 h-12 rounded-xl flex items-center justify-center transition-all',
+            showForm ? 'bg-zinc-800 text-zinc-400' : 'bg-violet-600 text-white shadow-lg shadow-violet-600/20'
+          ]"
+          title="Manuel Ekle"
+        >
+          <i :class="`fa-solid ${showForm ? 'fa-xmark' : 'fa-plus'}`"></i>
+        </button>
+      </div>
     </div>
 
     <form
-      v-if="isAdding"
+      v-if="showForm"
       @submit.prevent="handleSubmit"
       class="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 space-y-4 animate-in slide-in-from-top-4"
     >
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-xs font-black text-zinc-400 uppercase tracking-widest">
+          {{ isEditing ? 'Egzersiz Düzenle' : 'Yeni Egzersiz' }}
+        </h3>
+        <button
+          v-if="isEditing"
+          type="button"
+          @click="resetForm"
+          class="text-zinc-600 hover:text-zinc-400 text-[10px] font-bold uppercase"
+        >
+          İptal
+        </button>
+      </div>
+
       <div
         @click="fileInput?.click()"
         class="w-full h-32 bg-zinc-950 rounded-2xl border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center text-zinc-600 hover:border-violet-500/50 cursor-pointer overflow-hidden transition-all"
@@ -60,6 +84,21 @@
             />
           </div>
         </div>
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1 block">Superset Grubu</label>
+            <select
+              v-model="newEx.supersetGroup"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-zinc-400 appearance-none"
+            >
+              <option :value="null">Yok</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
+          </div>
+        </div>
         <textarea
           v-model="newEx.notes"
           placeholder="Notlar..."
@@ -68,9 +107,12 @@
       </div>
       <button
         type="submit"
-        class="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-violet-600/20"
+        :class="[
+          'w-full py-4 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl',
+          isEditing ? 'bg-amber-600 shadow-amber-600/20' : 'bg-violet-600 shadow-violet-600/20'
+        ]"
       >
-        Egzersiz Oluştur
+        {{ isEditing ? 'Güncelle' : 'Egzersiz Oluştur' }}
       </button>
     </form>
 
@@ -86,7 +128,10 @@
             <div
               v-for="ex in getExercisesForDay(day)"
               :key="ex.id"
-              class="bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/50 flex items-center justify-between"
+              :class="[
+                'bg-zinc-900/50 p-3 rounded-2xl border flex items-center justify-between',
+                ex.supersetGroup ? 'border-amber-500/30' : 'border-zinc-800/50'
+              ]"
             >
               <div class="flex items-center gap-3">
                 <div
@@ -96,26 +141,47 @@
                   <i v-else class="fa-solid fa-dumbbell text-sm"></i>
                 </div>
                 <div>
-                  <h4 class="text-xs font-black text-zinc-200 uppercase tracking-tighter italic">{{ ex.name }}</h4>
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-xs font-black text-zinc-200 uppercase tracking-tighter italic">{{ ex.name }}</h4>
+                    <span
+                      v-if="ex.supersetGroup"
+                      class="text-[8px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded"
+                    >
+                      SS-{{ ex.supersetGroup }}
+                    </span>
+                  </div>
                   <p class="text-[9px] font-bold text-zinc-500">{{ ex.targetSets }} Sets - {{ ex.targetReps }} Reps</p>
                 </div>
               </div>
-              <button @click="handleRemoveExercise(ex.id)" class="text-zinc-700 hover:text-red-500 p-2">
-                <i class="fa-solid fa-trash-can text-xs"></i>
-              </button>
+              <div class="flex items-center gap-1">
+                <button @click="handleEditExercise(ex)" class="text-zinc-700 hover:text-amber-500 p-2">
+                  <i class="fa-solid fa-pen text-xs"></i>
+                </button>
+                <button @click="handleRemoveExercise(ex.id)" class="text-zinc-700 hover:text-red-500 p-2">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </template>
     </div>
+
+    <!-- Exercise Library Modal -->
+    <ExerciseLibraryModal
+      :show="showLibraryModal"
+      @close="showLibraryModal = false"
+      @select="handleLibrarySelect"
+      @manual="handleManualAdd"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Exercise, DayOfWeek } from '~/types';
+import type { Exercise, DayOfWeek, LibraryExercise } from '~/types';
 import { DAYS, DAY_LABELS } from '~/constants';
 
-const { exercises, addExercise, removeExercise, user } = useAppState();
+const { exercises, addExercise, updateExercise, removeExercise, user } = useAppState();
 
 // Redirect if not logged in
 onMounted(() => {
@@ -125,7 +191,12 @@ onMounted(() => {
 });
 
 const isAdding = ref(false);
+const editingId = ref<string | null>(null);
+const showLibraryModal = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+
+const isEditing = computed(() => editingId.value !== null);
+const showForm = computed(() => isAdding.value || isEditing.value);
 
 const newEx = ref<Partial<Exercise>>({
   name: '',
@@ -133,7 +204,9 @@ const newEx = ref<Partial<Exercise>>({
   notes: '',
   targetSets: 3,
   targetReps: '10',
-  imageUrl: ''
+  imageUrl: '',
+  muscleGroup: null,
+  supersetGroup: null,
 });
 
 const handleImageChange = (e: Event) => {
@@ -148,26 +221,65 @@ const handleImageChange = (e: Event) => {
   }
 };
 
+const resetForm = () => {
+  newEx.value = {
+    name: '',
+    day: 'Monday',
+    notes: '',
+    targetSets: 3,
+    targetReps: '10',
+    imageUrl: '',
+    muscleGroup: null,
+    supersetGroup: null,
+  };
+  isAdding.value = false;
+  editingId.value = null;
+};
+
 const handleSubmit = async () => {
   if (newEx.value.name) {
-    await addExercise({
-      name: newEx.value.name,
-      day: newEx.value.day || 'Monday',
-      notes: newEx.value.notes || '',
-      targetSets: newEx.value.targetSets || 3,
-      targetReps: newEx.value.targetReps || '10',
-      imageUrl: newEx.value.imageUrl || undefined
-    });
-    isAdding.value = false;
-    newEx.value = {
-      name: '',
-      day: 'Monday',
-      notes: '',
-      targetSets: 3,
-      targetReps: '10',
-      imageUrl: ''
-    };
+    if (editingId.value) {
+      // Update existing exercise
+      await updateExercise(editingId.value, {
+        name: newEx.value.name,
+        day: newEx.value.day || 'Monday',
+        notes: newEx.value.notes || '',
+        targetSets: newEx.value.targetSets || 3,
+        targetReps: newEx.value.targetReps || '10',
+        imageUrl: newEx.value.imageUrl || undefined,
+        muscleGroup: newEx.value.muscleGroup || undefined,
+        supersetGroup: newEx.value.supersetGroup || undefined,
+      });
+    } else {
+      // Add new exercise
+      await addExercise({
+        name: newEx.value.name,
+        day: newEx.value.day || 'Monday',
+        notes: newEx.value.notes || '',
+        targetSets: newEx.value.targetSets || 3,
+        targetReps: newEx.value.targetReps || '10',
+        imageUrl: newEx.value.imageUrl || undefined,
+        muscleGroup: newEx.value.muscleGroup || undefined,
+        supersetGroup: newEx.value.supersetGroup || undefined,
+      });
+    }
+    resetForm();
   }
+};
+
+const handleEditExercise = (ex: Exercise) => {
+  editingId.value = ex.id;
+  isAdding.value = false;
+  newEx.value = {
+    name: ex.name,
+    day: ex.day,
+    notes: ex.notes,
+    targetSets: ex.targetSets,
+    targetReps: ex.targetReps,
+    imageUrl: ex.imageUrl || '',
+    muscleGroup: ex.muscleGroup || null,
+    supersetGroup: ex.supersetGroup || null,
+  };
 };
 
 const getExercisesForDay = (day: DayOfWeek) => {
@@ -176,5 +288,24 @@ const getExercisesForDay = (day: DayOfWeek) => {
 
 const handleRemoveExercise = async (id: string) => {
   await removeExercise(id);
+};
+
+const handleLibrarySelect = (exercise: LibraryExercise) => {
+  // Pre-fill form with selected exercise
+  newEx.value = {
+    name: exercise.nameTr,
+    day: 'Monday',
+    notes: '',
+    targetSets: 3,
+    targetReps: '10',
+    imageUrl: '',
+    muscleGroup: exercise.muscleGroup,
+  };
+  isAdding.value = true;
+};
+
+const handleManualAdd = () => {
+  showLibraryModal.value = false;
+  isAdding.value = true;
 };
 </script>

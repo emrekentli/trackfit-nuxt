@@ -22,6 +22,13 @@
       "when": 1768248658375,
       "tag": "0002_bent_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1768303519674,
+      "tag": "0003_giant_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

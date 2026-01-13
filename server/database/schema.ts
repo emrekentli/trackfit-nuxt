@@ -58,6 +58,16 @@ export const bodyMetrics = pgTable('body_metrics', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Exercise library table (global, not user-specific)
+export const exerciseLibrary = pgTable('exercise_library', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(), // English name
+  nameTr: varchar('name_tr', { length: 255 }).notNull(), // Turkish name
+  muscleGroup: varchar('muscle_group', { length: 50 }).notNull(), // Chest, Back, Shoulders, Arms, Legs, Abs
+  equipment: varchar('equipment', { length: 100 }), // Dumbbell, Barbell, Cable, Machine, Bodyweight
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   exercises: many(exercises),
@@ -100,3 +110,5 @@ export type WorkoutLog = typeof workoutLogs.$inferSelect;
 export type NewWorkoutLog = typeof workoutLogs.$inferInsert;
 export type BodyMetric = typeof bodyMetrics.$inferSelect;
 export type NewBodyMetric = typeof bodyMetrics.$inferInsert;
+export type ExerciseLibraryItem = typeof exerciseLibrary.$inferSelect;
+export type NewExerciseLibraryItem = typeof exerciseLibrary.$inferInsert;

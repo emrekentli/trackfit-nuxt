@@ -6,7 +6,9 @@
       "Bash(bun run db:generate:*)",
       "Bash(bun run build)",
       "Bash(bunx nuxi typecheck:*)",
-      "Bash(npx nuxi typecheck:*)"
+      "Bash(npx nuxi typecheck:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(npx tsx:*)"
     ]
   }
 }

@@ -1,6 +1,18 @@
 export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 
-export type MuscleGroup = 'Shoulders' | 'Chest' | 'Back' | 'Arms' | 'Legs' | 'Abs' | 'Triceps' | 'Biceps';
+export type MuscleGroup =
+  | 'Shoulders'
+  | 'Chest'
+  | 'Back'
+  | 'Arms'
+  | 'Legs'
+  | 'Abs'
+  | 'Triceps'
+  | 'Biceps'
+  | 'Calves'
+  | 'Forearms'
+  | 'Rear Delts'
+  | 'Traps';
 
 export interface Exercise {
   id: string;
@@ -10,7 +22,7 @@ export interface Exercise {
   targetSets: number;
   targetReps: string;
   imageUrl?: string;
-  muscleGroup?: MuscleGroup | string | null;
+  muscleGroup?: MuscleGroup | null;
   supersetGroup?: string | null;
   orderIndex?: number;
 }
@@ -48,9 +60,18 @@ export interface BodyMetric {
   notes?: string | null;
 }
 
+export interface LibraryExercise {
+  id: string;
+  name: string;
+  nameTr: string;
+  muscleGroup: MuscleGroup;
+  equipment: string | null;
+}
+
 export interface AppState {
   user: User | null;
   exercises: Exercise[];
   logs: WorkoutLog[];
   bodyMetrics: BodyMetric[];
+  exerciseLibrary: LibraryExercise[];
 }
