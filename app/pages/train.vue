@@ -221,7 +221,9 @@
         v-if="showSetModal && activeExercise"
         class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
       >
-        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-xl">
+        <div
+          class="bg-zinc-900 border border-zinc-800 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl sm:max-h-none sm:overflow-visible sm:rounded-3xl"
+        >
           <div class="sticky top-0 bg-zinc-900 p-4 border-b border-zinc-800 flex justify-between items-center">
             <div>
               <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Set Girisi</p>
