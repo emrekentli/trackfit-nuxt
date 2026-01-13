@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const body = await readBody(event);
 
-  const { exerciseId, date, weight } = body;
+  const { exerciseId, date, weight, rir, setIndex, reps } = body;
 
   if (!exerciseId || !date || weight === undefined) {
     throw createError({
@@ -17,21 +17,35 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB();
 
-  // Check if log exists for this exercise and date
+  const weightInGrams = Math.round(weight * 1000); // Store as grams for precision
+  let rirValue: number | null = null;
+  if (rir !== undefined && rir !== null) {
+    const parsedRir = Number(rir);
+    rirValue = Number.isNaN(parsedRir) ? null : Math.round(parsedRir);
+  }
+
+  const rawSetIndex = Number(setIndex);
+  const setIndexValue = Number.isNaN(rawSetIndex) ? 1 : Math.max(1, Math.round(rawSetIndex));
+  const rawReps = reps === undefined || reps === null ? null : Math.round(Number(reps));
+  const repsValue = rawReps === null || Number.isNaN(rawReps) ? null : Math.max(0, rawReps);
+
   const existing = await db.query.workoutLogs.findFirst({
     where: and(
       eq(schema.workoutLogs.userId, userId),
       eq(schema.workoutLogs.exerciseId, exerciseId),
-      eq(schema.workoutLogs.date, date)
+      eq(schema.workoutLogs.date, date),
+      eq(schema.workoutLogs.setIndex, setIndexValue)
     ),
   });
-
-  const weightInGrams = Math.round(weight * 1000); // Store as grams for precision
 
   if (existing) {
     // Update existing log
     const [updated] = await db.update(schema.workoutLogs)
-      .set({ weight: weightInGrams })
+      .set(
+        rir === undefined && reps === undefined
+          ? { weight: weightInGrams }
+          : { weight: weightInGrams, rir: rirValue, reps: repsValue }
+      )
       .where(eq(schema.workoutLogs.id, existing.id))
       .returning();
 
@@ -44,6 +58,9 @@ export default defineEventHandler(async (event) => {
       exerciseId: updated.exerciseId,
       date: updated.date,
       weight: updated.weight / 1000,
+      rir: updated.rir ?? null,
+      setIndex: updated.setIndex,
+      reps: updated.reps ?? null,
     };
   }
 
@@ -53,6 +70,9 @@ export default defineEventHandler(async (event) => {
     exerciseId,
     date,
     weight: weightInGrams,
+    rir: rirValue,
+    setIndex: setIndexValue,
+    reps: repsValue,
   }).returning();
 
   if (!log) {
@@ -64,5 +84,8 @@ export default defineEventHandler(async (event) => {
     exerciseId: log.exerciseId,
     date: log.date,
     weight: log.weight / 1000,
+    rir: log.rir ?? null,
+    setIndex: log.setIndex,
+    reps: log.reps ?? null,
   };
 });

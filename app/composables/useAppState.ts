@@ -24,6 +24,9 @@ interface ApiLog {
   exerciseId: string;
   date: string;
   weight: number;
+  rir?: number | null;
+  setIndex: number;
+  reps?: number | null;
 }
 
 interface ApiBodyMetric {
@@ -120,6 +123,9 @@ export function useAppState() {
         exerciseId: log.exerciseId,
         date: log.date,
         weight: log.weight,
+        rir: log.rir ?? null,
+        setIndex: log.setIndex,
+        reps: log.reps ?? null,
       }));
     } catch (e) {
       console.error('Failed to fetch logs:', e);
@@ -289,32 +295,29 @@ export function useAppState() {
   };
 
   // Update log
-  const updateLog = async (exerciseId: string, weight: number) => {
-    if (Number.isNaN(weight)) return;
-
-    const today = new Date().toISOString().split('T')[0];
-
-    const data = await $fetch<ApiLog>('/api/logs', {
+  const updateWorkoutSets = async (
+    exerciseId: string,
+    date: string,
+    sets: { setIndex: number; weight: number; reps?: number | null; rir?: number | null }[]
+  ) => {
+    const payload = sets.filter((set) => !Number.isNaN(set.weight));
+    const data = await $fetch<ApiLog[]>('/api/logs/sets', {
       method: 'POST',
-      body: { exerciseId, date: today, weight },
+      body: { exerciseId, date, sets: payload },
     });
 
-    const existingIndex = logs.value.findIndex(
-      (l) => l.exerciseId === exerciseId && l.date === today
+    logs.value = logs.value.filter((log) => !(log.exerciseId === exerciseId && log.date === date));
+    logs.value.push(
+      ...data.map((log) => ({
+        id: log.id,
+        exerciseId: log.exerciseId,
+        date: log.date,
+        weight: log.weight,
+        rir: log.rir ?? null,
+        setIndex: log.setIndex,
+        reps: log.reps ?? null,
+      }))
     );
-
-    const newLog: WorkoutLog = {
-      id: data.id,
-      exerciseId: data.exerciseId,
-      date: data.date,
-      weight: data.weight,
-    };
-
-    if (existingIndex > -1) {
-      logs.value[existingIndex] = newLog;
-    } else {
-      logs.value.push(newLog);
-    }
   };
 
   // Update body metric
@@ -381,7 +384,7 @@ export function useAppState() {
     addExercise,
     updateExercise,
     removeExercise,
-    updateLog,
+    updateWorkoutSets,
     updateBodyMetric,
     exportData,
     importData,

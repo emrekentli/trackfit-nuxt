@@ -33,6 +33,9 @@ export const workoutLogs = pgTable('workout_logs', {
   exerciseId: uuid('exercise_id').notNull().references(() => exercises.id, { onDelete: 'cascade' }),
   date: date('date').notNull(),
   weight: integer('weight').notNull(), // in grams for precision, convert to kg on client
+  rir: integer('rir'),
+  setIndex: integer('set_index').notNull().default(1),
+  reps: integer('reps'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

@@ -46,6 +46,9 @@ export default defineEventHandler(async (event) => {
       exerciseName: exercises.find((e) => e.id === l.exerciseId)?.name,
       date: l.date,
       weight: l.weight / 1000, // Convert to kg
+      rir: l.rir ?? null,
+      setIndex: l.setIndex,
+      reps: l.reps ?? null,
     })),
     bodyMetrics: metrics.map((m) => ({
       date: m.date,

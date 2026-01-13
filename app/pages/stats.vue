@@ -49,9 +49,18 @@
         </p>
       </div>
 
-      <div v-else class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-2xl">
-        <div class="h-64">
-          <Line :data="chartData" :options="chartOptions" />
+      <div v-else class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-2xl space-y-4">
+        <div>
+          <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Max Kg</p>
+          <div class="h-56">
+            <Line :data="chartData" :options="chartOptions" />
+          </div>
+        </div>
+        <div>
+          <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">e1RM Trend</p>
+          <div class="h-56">
+            <Line :data="e1rmChartData" :options="chartOptions" />
+          </div>
         </div>
       </div>
 
@@ -102,20 +111,20 @@
               </div>
               <div>
                 <p class="text-[10px] font-black text-white uppercase tracking-wider">{{ formatDate(group.date) }}</p>
-                <p class="text-[9px] font-medium text-zinc-500">{{ group.logs.length }} egzersiz</p>
+                <p class="text-[9px] font-medium text-zinc-500">{{ group.exercises.length }} egzersiz</p>
               </div>
             </div>
             <div class="text-right">
-              <p class="text-[10px] font-black text-emerald-400">{{ getTotalVolume(group.logs) }} KG</p>
+              <p class="text-[10px] font-black text-emerald-400">{{ getTotalVolume(group.exercises) }} KG</p>
               <p class="text-[8px] text-zinc-600 font-bold uppercase">Toplam hacim</p>
             </div>
           </div>
           <div class="divide-y divide-zinc-800/50">
-            <div v-for="log in group.logs" :key="log.id" class="px-4 py-3 flex justify-between items-center">
+            <div v-for="log in group.exercises" :key="log.exerciseId" class="px-4 py-3 flex justify-between items-center">
               <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                 {{ getExerciseName(log.exerciseId) }}
               </span>
-              <span class="text-[11px] font-black text-zinc-200">{{ log.weight }} KG</span>
+              <span class="text-[11px] font-black text-zinc-200">{{ log.maxWeight }} KG</span>
             </div>
           </div>
         </div>
@@ -425,11 +434,40 @@ watchEffect(() => {
   }
 });
 
+const getExerciseDailySummaries = (exerciseId: string) => {
+  const summaries = new Map<string, { date: string; maxWeight: number; totalVolume: number; e1rm: number | null }>();
+
+  logs.value
+    .filter((log) => log.exerciseId === exerciseId)
+    .forEach((log) => {
+      const existing = summaries.get(log.date);
+      const volume = log.reps != null ? log.weight * log.reps : log.weight;
+      const reps = log.reps ?? null;
+      const rir = log.rir ?? 0;
+      const e1rm = reps !== null ? log.weight * (1 + (reps + rir) / 30) : null;
+      if (!existing) {
+        summaries.set(log.date, { date: log.date, maxWeight: log.weight, totalVolume: volume, e1rm });
+        return;
+      }
+      const maxWeight = Math.max(existing.maxWeight, log.weight);
+      const maxE1rm =
+        e1rm !== null ? Math.max(existing.e1rm ?? 0, e1rm) : existing.e1rm;
+      summaries.set(log.date, {
+        date: log.date,
+        maxWeight,
+        totalVolume: existing.totalVolume + volume,
+        e1rm: maxE1rm,
+      });
+    });
+
+  return Array.from(summaries.values()).sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+};
+
 const selectedExerciseLogs = computed(() => {
   if (!selectedExercise.value) return [];
-  return logs.value
-    .filter((l) => l.exerciseId === selectedExercise.value)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return getExerciseDailySummaries(selectedExercise.value);
 });
 
 const chartOptions = {
@@ -458,12 +496,33 @@ const chartData = computed(() => ({
   datasets: [
     {
       label: 'Kilo (KG)',
-      data: selectedExerciseLogs.value.map((l) => l.weight),
+      data: selectedExerciseLogs.value.map((l) => l.maxWeight),
       borderColor: '#8b5cf6',
       backgroundColor: 'rgba(139, 92, 246, 0.1)',
       fill: true,
       tension: 0.4,
       pointBackgroundColor: '#8b5cf6',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+    },
+  ],
+}));
+
+const e1rmChartData = computed(() => ({
+  labels: selectedExerciseLogs.value.map((l) => {
+    const [, month, day] = l.date.split('-');
+    return `${day}/${month}`;
+  }),
+  datasets: [
+    {
+      label: 'e1RM (KG)',
+      data: selectedExerciseLogs.value.map((l) => l.e1rm ?? null),
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#10b981',
       pointBorderColor: '#fff',
       pointBorderWidth: 2,
       pointRadius: 4,
@@ -501,31 +560,57 @@ const bodyWeightChartData = computed(() => {
 });
 
 const groupedLogs = computed(() => {
-  const groups: Record<string, typeof logs.value> = {};
+  const byDate = new Map<
+    string,
+    Map<string, { exerciseId: string; maxWeight: number; setCount: number; totalVolume: number }>
+  >();
 
   logs.value.forEach((log) => {
-    if (!groups[log.date]) groups[log.date] = [];
-    groups[log.date]!.push(log);
+    const dateKey = log.date;
+    const volume = log.reps != null ? log.weight * log.reps : log.weight;
+    if (!byDate.has(dateKey)) byDate.set(dateKey, new Map());
+
+    const byExercise = byDate.get(dateKey)!;
+    const existing = byExercise.get(log.exerciseId);
+    if (!existing) {
+      byExercise.set(log.exerciseId, {
+        exerciseId: log.exerciseId,
+        maxWeight: log.weight,
+        setCount: 1,
+        totalVolume: volume,
+      });
+      return;
+    }
+
+    byExercise.set(log.exerciseId, {
+      exerciseId: log.exerciseId,
+      maxWeight: Math.max(existing.maxWeight, log.weight),
+      setCount: existing.setCount + 1,
+      totalVolume: existing.totalVolume + volume,
+    });
   });
 
-  return Object.entries(groups)
-    .map(([date, dateLogs]) => ({ date, logs: dateLogs }))
+  return Array.from(byDate.entries())
+    .map(([date, exerciseMap]) => ({
+      date,
+      exercises: Array.from(exerciseMap.values()),
+    }))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 });
 
 const getLatestWeight = (exerciseId: string) => {
-  const exLogs = logs.value.filter((l) => l.exerciseId === exerciseId);
-  if (exLogs.length === 0) return '--';
-  const sorted = exLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  const latest = sorted[0];
+  const summaries = getExerciseDailySummaries(exerciseId).sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const latest = summaries[0];
   if (!latest) return '--';
-  return `${latest.weight} KG`;
+  return `${latest.maxWeight} KG`;
 };
 
 const getMaxWeight = (exerciseId: string) => {
-  const exLogs = logs.value.filter((l) => l.exerciseId === exerciseId);
-  if (exLogs.length === 0) return '--';
-  const max = Math.max(...exLogs.map((l) => l.weight));
+  const summaries = getExerciseDailySummaries(exerciseId);
+  if (summaries.length === 0) return '--';
+  const max = Math.max(...summaries.map((l) => l.maxWeight));
   return `${max} KG`;
 };
 
@@ -540,8 +625,8 @@ const formatDate = (dateStr: string) => {
   return `${day} ${monthName} ${year}`;
 };
 
-const getTotalVolume = (dayLogs: typeof logs.value) => {
-  return dayLogs.reduce((sum, log) => sum + log.weight, 0).toFixed(1);
+const getTotalVolume = (dayLogs: { totalVolume: number }[]) => {
+  return dayLogs.reduce((sum, log) => sum + log.totalVolume, 0).toFixed(1);
 };
 
 const handleExport = async () => {

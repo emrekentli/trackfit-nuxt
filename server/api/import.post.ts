@@ -63,6 +63,9 @@ export default defineEventHandler(async (event) => {
           exerciseId: exercise.id,
           date: log.date,
           weight: Math.round(log.weight * 1000), // Convert to grams
+          rir: log.rir ?? null,
+          setIndex: log.setIndex ? Math.max(1, Math.round(log.setIndex)) : 1,
+          reps: log.reps ?? null,
         }).onConflictDoNothing();
         importedLogs++;
       }

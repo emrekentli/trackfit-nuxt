@@ -32,6 +32,9 @@ export interface WorkoutLog {
   exerciseId: string;
   date: string; // YYYY-MM-DD
   weight: number;
+  rir?: number | null;
+  setIndex: number;
+  reps?: number | null;
 }
 
 export interface User {
