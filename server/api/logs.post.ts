@@ -6,16 +6,86 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const body = await readBody(event);
 
-  const { exerciseId, date, weight, rir, setIndex, reps } = body;
+  const { exerciseId, date, weight, rir, setIndex, reps, sets } = body;
 
-  if (!exerciseId || !date || weight === undefined) {
+  if (!exerciseId || !date) {
     throw createError({
       statusCode: 400,
-      message: 'exerciseId, date and weight are required',
+      message: 'exerciseId and date are required',
     });
   }
 
   const db = useDB();
+
+  if (Array.isArray(sets)) {
+    const cleanedSets = (sets as { setIndex: number; weight: number; reps?: number | null; rir?: number | null }[])
+      .filter((set) => set && typeof set.weight === 'number' && !Number.isNaN(set.weight))
+      .map((set) => {
+        const rawIndex = Number(set.setIndex);
+        const setIndexValue = Number.isNaN(rawIndex) ? 1 : Math.max(1, Math.round(rawIndex));
+        const rawReps = set.reps === undefined || set.reps === null ? null : Math.round(Number(set.reps));
+        const repsValue = rawReps === null || Number.isNaN(rawReps) ? null : Math.max(0, rawReps);
+        const rawRir = set.rir === undefined || set.rir === null ? null : Math.round(Number(set.rir));
+        const rirValue = rawRir === null || Number.isNaN(rawRir) ? null : rawRir;
+
+        return {
+          setIndex: setIndexValue,
+          weightInGrams: Math.round(set.weight * 1000),
+          reps: repsValue,
+          rir: rirValue,
+        };
+      });
+
+    await db.transaction(async (tx) => {
+      await tx.delete(schema.workoutLogs).where(
+        and(
+          eq(schema.workoutLogs.userId, userId),
+          eq(schema.workoutLogs.exerciseId, exerciseId),
+          eq(schema.workoutLogs.date, date)
+        )
+      );
+
+      if (cleanedSets.length > 0) {
+        await tx.insert(schema.workoutLogs).values(
+          cleanedSets.map((set) => ({
+            userId,
+            exerciseId,
+            date,
+            setIndex: set.setIndex,
+            weight: set.weightInGrams,
+            reps: set.reps,
+            rir: set.rir,
+          }))
+        );
+      }
+    });
+
+    const inserted = await db.query.workoutLogs.findMany({
+      where: and(
+        eq(schema.workoutLogs.userId, userId),
+        eq(schema.workoutLogs.exerciseId, exerciseId),
+        eq(schema.workoutLogs.date, date)
+      ),
+      orderBy: schema.workoutLogs.setIndex,
+    });
+
+    return inserted.map((log) => ({
+      id: log.id,
+      exerciseId: log.exerciseId,
+      date: log.date,
+      weight: log.weight / 1000,
+      rir: log.rir ?? null,
+      setIndex: log.setIndex,
+      reps: log.reps ?? null,
+    }));
+  }
+
+  if (weight === undefined) {
+    throw createError({
+      statusCode: 400,
+      message: 'weight is required when sets are not provided',
+    });
+  }
 
   const weightInGrams = Math.round(weight * 1000); // Store as grams for precision
   let rirValue: number | null = null;

@@ -301,7 +301,7 @@ export function useAppState() {
     sets: { setIndex: number; weight: number; reps?: number | null; rir?: number | null }[]
   ) => {
     const payload = sets.filter((set) => !Number.isNaN(set.weight));
-    const data = await $fetch<ApiLog[]>('/api/logs/sets', {
+    const data = await $fetch<ApiLog[]>('/api/logs', {
       method: 'POST',
       body: { exerciseId, date, sets: payload },
     });
