@@ -76,10 +76,11 @@
 
 <script setup lang="ts">
 definePageMeta({
-  layout: 'auth'
+  layout: 'auth',
+  middleware: 'guest',
 });
 
-const { login, register, user } = useAppState();
+const { login, register } = useAppState();
 
 const isLogin = ref(true);
 const email = ref('');
@@ -87,13 +88,6 @@ const password = ref('');
 const name = ref('');
 const error = ref('');
 const isSubmitting = ref(false);
-
-// Redirect if already logged in
-watch(user, (newUser) => {
-  if (newUser) {
-    navigateTo('/train');
-  }
-}, { immediate: true });
 
 const handleSubmit = async () => {
   if (!email.value || !password.value) return;

@@ -179,14 +179,11 @@
 import type { DayOfWeek, Exercise } from '~/types';
 import { DAYS, DAY_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ICONS } from '~/constants';
 
-const { exercises, logs, updateLog, user } = useAppState();
-
-// Redirect if not logged in
-onMounted(() => {
-  if (!user.value) {
-    navigateTo('/');
-  }
+definePageMeta({
+  middleware: 'auth',
 });
+
+const { exercises, logs, updateLog } = useAppState();
 
 const selectedDay = ref<DayOfWeek>(
   new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()) as DayOfWeek

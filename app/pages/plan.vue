@@ -181,14 +181,11 @@
 import type { Exercise, DayOfWeek, LibraryExercise } from '~/types';
 import { DAYS, DAY_LABELS } from '~/constants';
 
-const { exercises, addExercise, updateExercise, removeExercise, user } = useAppState();
-
-// Redirect if not logged in
-onMounted(() => {
-  if (!user.value) {
-    navigateTo('/');
-  }
+definePageMeta({
+  middleware: 'auth',
 });
+
+const { exercises, addExercise, updateExercise, removeExercise } = useAppState();
 
 const isAdding = ref(false);
 const editingId = ref<string | null>(null);

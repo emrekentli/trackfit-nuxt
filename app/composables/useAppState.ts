@@ -45,16 +45,16 @@ interface ApiBodyMetric {
   notes?: string | null;
 }
 
-// Global state
-const user = ref<User | null>(null);
-const exercises = ref<Exercise[]>([]);
-const logs = ref<WorkoutLog[]>([]);
-const bodyMetrics = ref<BodyMetric[]>([]);
-const exerciseLibrary = ref<LibraryExercise[]>([]);
-const isLoading = ref(false);
-const isInitialized = ref(false);
-
 export function useAppState() {
+  // SSR-safe global state using useState
+  const user = useState<User | null>('app-user', () => null);
+  const exercises = useState<Exercise[]>('app-exercises', () => []);
+  const logs = useState<WorkoutLog[]>('app-logs', () => []);
+  const bodyMetrics = useState<BodyMetric[]>('app-body-metrics', () => []);
+  const exerciseLibrary = useState<LibraryExercise[]>('app-exercise-library', () => []);
+  const isLoading = useState<boolean>('app-is-loading', () => false);
+  const isInitialized = useState<boolean>('app-is-initialized', () => false);
+
   // Fetch current user
   const fetchUser = async () => {
     try {
@@ -322,14 +322,14 @@ export function useAppState() {
   };
 
   return {
-    // State
-    user: computed(() => user.value),
-    exercises: computed(() => exercises.value),
-    logs: computed(() => logs.value),
-    bodyMetrics: computed(() => bodyMetrics.value),
-    exerciseLibrary: computed(() => exerciseLibrary.value),
-    isLoading: computed(() => isLoading.value),
-    isInitialized: computed(() => isInitialized.value),
+    // State (useState is already reactive, no need for computed)
+    user,
+    exercises,
+    logs,
+    bodyMetrics,
+    exerciseLibrary,
+    isLoading,
+    isInitialized,
 
     // Actions
     initialize,

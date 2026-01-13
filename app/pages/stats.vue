@@ -379,14 +379,11 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
-const { exercises, logs, bodyMetrics, user, exportData, importData, updateBodyMetric } = useAppState();
-
-// Redirect if not logged in
-onMounted(() => {
-  if (!user.value) {
-    navigateTo('/');
-  }
+definePageMeta({
+  middleware: 'auth',
 });
+
+const { exercises, logs, bodyMetrics, exportData, importData, updateBodyMetric } = useAppState();
 
 const tabs = [
   { id: 'charts', label: 'Grafikler', icon: 'fa-chart-line' },

@@ -57,15 +57,7 @@
 
 <script setup lang="ts">
 definePageMeta({
-  layout: 'auth'
-});
-
-const { user } = useAppState();
-
-// Redirect to train if already logged in
-onMounted(() => {
-  if (user.value) {
-    navigateTo('/train');
-  }
+  layout: 'auth',
+  middleware: 'guest',
 });
 </script>
