@@ -7,20 +7,30 @@
         <span class="text-[10px] font-black text-white uppercase tracking-widest">{{ streak }} GÜN SERİ</span>
       </div>
 
-      <button
-        @click="toggleTimer"
-        :class="[
-          'flex items-center gap-3 px-5 py-2 rounded-full shadow-lg transition-all active:scale-95 border',
-          timer !== null
-            ? 'bg-violet-600 border-violet-400 animate-pulse'
-            : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
-        ]"
-      >
-        <i :class="`fa-solid ${timer !== null ? 'fa-stop' : 'fa-play'} text-white text-xs`"></i>
-        <span class="text-[10px] font-black text-white uppercase tracking-widest">
-          {{ timer !== null ? `${timer}s` : 'DİNLENME BAŞLAT' }}
-        </span>
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          @click="toggleMute"
+          class="flex items-center justify-center w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-all"
+          :title="isMuted ? 'Sesi Aç' : 'Sesi Kapat'"
+        >
+          <i :class="`fa-solid ${isMuted ? 'fa-volume-xmark' : 'fa-volume-high'} text-white text-xs`"></i>
+        </button>
+
+        <button
+          @click="toggleTimer"
+          :class="[
+            'flex items-center gap-3 px-5 py-2 rounded-full shadow-lg transition-all active:scale-95 border',
+            timer !== null
+              ? 'bg-violet-600 border-violet-400 animate-pulse'
+              : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+          ]"
+        >
+          <i :class="`fa-solid ${timer !== null ? 'fa-stop' : 'fa-play'} text-white text-xs`"></i>
+          <span class="text-[10px] font-black text-white uppercase tracking-widest">
+            {{ timer !== null ? `${timer}s` : 'DİNLENME BAŞLAT' }}
+          </span>
+        </button>
+      </div>
     </div>
 
     <!-- Horizontal Compact Day Selector -->
@@ -196,6 +206,7 @@ const selectedDay = ref<DayOfWeek>(
 );
 
 const timer = ref<number | null>(null);
+const isMuted = ref(false);
 const todayDate = new Date().toISOString().split('T')[0];
 
 const todaysExercises = computed(() => {
@@ -278,26 +289,86 @@ const handleWeightUpdate = async (exerciseId: string, value: string) => {
   }
 };
 
-let timerInterval: ReturnType<typeof setInterval> | null = null;
+let timerWorker: Worker | null = null;
+let audioContext: AudioContext | null = null;
+
+const ensureWorker = () => {
+  if (!import.meta.client || timerWorker) return;
+
+  timerWorker = new Worker(new URL('../workers/restTimer.worker.ts', import.meta.url), {
+    type: 'module',
+  });
+
+  timerWorker.onmessage = (event: MessageEvent<{ type: string; remaining?: number }>) => {
+    if (event.data.type === 'tick') {
+      const remaining = event.data.remaining ?? 0;
+      timer.value = remaining > 0 ? remaining : null;
+      return;
+    }
+
+    if (event.data.type === 'done') {
+      timer.value = null;
+      void playBeep();
+    }
+  };
+};
+
+const ensureAudioContext = async () => {
+  if (!import.meta.client || audioContext) return;
+  const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioCtx) return;
+  audioContext = new AudioCtx();
+  if (audioContext.state === 'suspended') {
+    await audioContext.resume();
+  }
+};
+
+const playBeep = async () => {
+  if (isMuted.value) return;
+  await ensureAudioContext();
+  if (!audioContext) return;
+
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.value = 880;
+  gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.2, audioContext.currentTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.4);
+
+  osc.connect(gain).connect(audioContext.destination);
+  osc.start();
+  osc.stop(audioContext.currentTime + 0.45);
+};
 
 const toggleTimer = () => {
   if (timer.value !== null) {
-    if (timerInterval) clearInterval(timerInterval);
+    timerWorker?.postMessage({ type: 'stop' });
     timer.value = null;
   } else {
+    ensureWorker();
+    void ensureAudioContext();
     timer.value = 60;
-    timerInterval = setInterval(() => {
-      if (timer.value !== null && timer.value > 0) {
-        timer.value--;
-      } else {
-        if (timerInterval) clearInterval(timerInterval);
-        timer.value = null;
-      }
-    }, 1000);
+    timerWorker?.postMessage({ type: 'start', duration: 60 });
+  }
+};
+
+const toggleMute = () => {
+  isMuted.value = !isMuted.value;
+  if (!isMuted.value) {
+    void ensureAudioContext();
   }
 };
 
 onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval);
+  timerWorker?.postMessage({ type: 'stop' });
+  timerWorker?.terminate();
+  timerWorker = null;
+
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
 });
 </script>
