@@ -54,7 +54,7 @@
     </div>
 
     <!-- Grouped by Muscle Group -->
-    <template v-else>
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div v-for="group in groupedByMuscle" :key="group.muscleGroup" class="space-y-0">
         <!-- Muscle Group Header -->
         <div class="bg-gradient-to-r from-zinc-800 to-zinc-900 border border-zinc-700 rounded-t-2xl px-4 py-3 flex items-center gap-3">
@@ -149,7 +149,7 @@
           </div>
         </div>
       </div>
-    </template>
+    </div>
 
     <!-- Progress Summary -->
     <div v-if="todaysExercises.length > 0" class="grid grid-cols-3 gap-3">

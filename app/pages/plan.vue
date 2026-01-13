@@ -116,7 +116,7 @@
       </button>
     </form>
 
-    <div class="space-y-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       <template v-for="day in DAYS" :key="day">
         <div v-if="getExercisesForDay(day).length > 0" class="space-y-3">
           <div class="flex items-center gap-3">
