@@ -124,6 +124,12 @@
                         PR
                       </span>
                     </div>
+                    <p
+                      v-if="getSuggestionForExercise(ex.id)"
+                      class="text-[9px] font-medium text-zinc-500 leading-snug whitespace-normal"
+                    >
+                      {{ getSuggestionForExercise(ex.id) }}
+                    </p>
                   </div>
 
                   <div class="text-[9px] font-black text-zinc-500 text-center">
@@ -188,25 +194,6 @@
           class="h-full bg-gradient-to-r from-emerald-500 to-violet-500"
           :style="{ width: `${weeklyProgress.percent}%` }"
         ></div>
-      </div>
-    </div>
-
-    <!-- Weekly Suggestions -->
-    <div v-if="weeklySuggestions.length > 0" class="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-4 space-y-3">
-      <div class="flex items-center gap-2">
-        <i class="fa-solid fa-bullseye text-emerald-400 text-xs"></i>
-        <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Gelisime Oneriler</p>
-      </div>
-      <div class="space-y-2">
-        <div
-          v-for="item in weeklySuggestions"
-          :key="item.exerciseId"
-          class="bg-zinc-950/60 border border-zinc-800 rounded-2xl px-4 py-3"
-        >
-          <p class="text-[10px] font-black text-white uppercase tracking-wider">{{ item.name }}</p>
-          <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{{ item.sets }}</p>
-          <p class="text-[10px] text-zinc-400 leading-relaxed mt-1">{{ item.message }}</p>
-        </div>
       </div>
     </div>
 
@@ -689,6 +676,18 @@ const weeklySuggestions = computed(() => {
     })
     .filter((item): item is { exerciseId: string; name: string; sets: string; message: string } => item !== null);
 });
+
+const suggestionByExercise = computed(() => {
+  const map = new Map<string, string>();
+  weeklySuggestions.value.forEach((item) => {
+    map.set(item.exerciseId, item.message);
+  });
+  return map;
+});
+
+const getSuggestionForExercise = (exerciseId: string) => {
+  return suggestionByExercise.value.get(exerciseId) || '';
+};
 
 const weeklyProgress = computed(() => {
   const currentWeekKey = getISOWeekKey(todayDate);
