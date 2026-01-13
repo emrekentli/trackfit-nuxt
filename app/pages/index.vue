@@ -60,4 +60,39 @@ definePageMeta({
   layout: 'auth',
   middleware: 'guest',
 });
+
+useSiteSeo({
+  title: 'TrackFit - Workout Tracker',
+  description: 'Plan workouts, track sessions, and measure progress with a focused training log.',
+});
+
+const config = useRuntimeConfig();
+const requestUrl = useRequestURL();
+const siteUrl = config.public.siteUrl || requestUrl.origin;
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      children: JSON.stringify([
+        {
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'TrackFit',
+          url: siteUrl,
+          description: 'Workout tracking and progress analytics.',
+        },
+        {
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'TrackFit',
+          applicationCategory: 'HealthApplication',
+          operatingSystem: 'Web',
+          url: siteUrl,
+          description: 'Plan workouts, track sessions, and analyze training progress.',
+        },
+      ]),
+    },
+  ],
+});
 </script>

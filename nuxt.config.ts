@@ -8,10 +8,22 @@ export default defineNuxtConfig({
     css: ['./app/assets/css/main.css'],
     runtimeConfig: {
         databaseUrl: process.env.DATABASE_URL || '',
+        public: {
+            siteUrl: process.env.NUXT_PUBLIC_SITE_URL || '',
+            siteName: 'TrackFit',
+        },
     },
     app: {
         head: {
-            title: 'TrackFit - Track Your Progress',
+            title: 'TrackFit',
+            titleTemplate: '%s | TrackFit',
+            meta: [
+                { charset: 'utf-8' },
+                { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+                { name: 'format-detection', content: 'telephone=no' },
+                { name: 'theme-color', content: '#0a0a0a' },
+                { name: 'color-scheme', content: 'dark' },
+            ],
             link: [
                 {
                     rel: 'icon',

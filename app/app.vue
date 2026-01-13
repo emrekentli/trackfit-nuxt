@@ -14,10 +14,9 @@
 const { initialize, isLoading } = useAppState();
 
 useHead({
-  title: 'TrackFit - Ultimate Workout Tracker',
-  meta: [
-    { name: 'description', content: 'Professional grade workout tracking. No fluff, no distractions.' }
-  ]
+  htmlAttrs: {
+    lang: 'tr',
+  },
 });
 
 onMounted(() => {

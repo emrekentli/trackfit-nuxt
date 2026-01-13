@@ -183,6 +183,12 @@ definePageMeta({
   middleware: 'auth',
 });
 
+useSiteSeo({
+  title: 'Training Session',
+  description: 'Log sets, track rest timers, and record workout performance.',
+  noindex: true,
+});
+
 const { exercises, logs, updateLog } = useAppState();
 
 const selectedDay = ref<DayOfWeek>(

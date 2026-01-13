@@ -185,6 +185,12 @@ definePageMeta({
   middleware: 'auth',
 });
 
+useSiteSeo({
+  title: 'Workout Plan',
+  description: 'Build and manage your weekly training plan and exercise library.',
+  noindex: true,
+});
+
 const { exercises, addExercise, updateExercise, removeExercise } = useAppState();
 
 const isAdding = ref(false);

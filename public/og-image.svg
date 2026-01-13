@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="TrackFit">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#151518"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="80" y="88" width="1040" height="454" rx="36" fill="#0f0f12" stroke="#26262b" stroke-width="2"/>
+  <rect x="110" y="120" width="240" height="12" rx="6" fill="#26262b"/>
+  <rect x="110" y="150" width="140" height="10" rx="5" fill="#1f1f24"/>
+  <text x="110" y="300" fill="#ffffff" font-size="64" font-family="Arial, sans-serif" font-weight="700" letter-spacing="1">
+    TrackFit
+  </text>
+  <text x="110" y="350" fill="#9ca3af" font-size="28" font-family="Arial, sans-serif">
+    Workout tracking. Progress, simplified.
+  </text>
+  <rect x="110" y="395" width="320" height="8" rx="4" fill="url(#accent)"/>
+  <rect x="110" y="420" width="220" height="8" rx="4" fill="#26262b"/>
+  <rect x="110" y="445" width="180" height="8" rx="4" fill="#26262b"/>
+</svg>

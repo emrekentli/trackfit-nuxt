@@ -80,6 +80,12 @@ definePageMeta({
   middleware: 'guest',
 });
 
+useSiteSeo({
+  title: 'Login',
+  description: 'Sign in or create your TrackFit account to start tracking workouts.',
+  noindex: true,
+});
+
 const { login, register } = useAppState();
 
 const isLogin = ref(true);

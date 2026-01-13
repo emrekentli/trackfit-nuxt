@@ -383,6 +383,12 @@ definePageMeta({
   middleware: 'auth',
 });
 
+useSiteSeo({
+  title: 'Progress & Stats',
+  description: 'Review charts, training history, and body metrics.',
+  noindex: true,
+});
+
 const { exercises, logs, bodyMetrics, exportData, importData, updateBodyMetric } = useAppState();
 
 const tabs = [

@@ -1,2 +1,7 @@
-User-Agent: *
-Disallow:
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /train
+Disallow: /plan
+Disallow: /stats
+Sitemap: /sitemap.xml
