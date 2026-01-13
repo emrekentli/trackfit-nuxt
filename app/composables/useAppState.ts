@@ -45,6 +45,8 @@ interface ApiBodyMetric {
   notes?: string | null;
 }
 
+let clientInitPromise: Promise<void> | null = null;
+
 export function useAppState() {
   // SSR-safe global state using useState
   const user = useState<User | null>('app-user', () => null);
@@ -55,10 +57,17 @@ export function useAppState() {
   const isLoading = useState<boolean>('app-is-loading', () => false);
   const isInitialized = useState<boolean>('app-is-initialized', () => false);
 
+  const requestHeaders =
+    import.meta.server && tryUseNuxtApp()?.ssrContext ? useRequestHeaders(['cookie']) : {};
+
+  const getRequestHeaders = () => requestHeaders;
+
   // Fetch current user
   const fetchUser = async () => {
     try {
-      const data = await $fetch<ApiUser | null>('/api/auth/me');
+      const data = await $fetch<ApiUser | null>('/api/auth/me', {
+        headers: getRequestHeaders(),
+      });
       if (data) {
         user.value = {
           id: data.id,
@@ -79,7 +88,9 @@ export function useAppState() {
   const fetchExercises = async () => {
     if (!user.value) return;
     try {
-      const data = await $fetch<ApiExercise[]>('/api/exercises');
+      const data = await $fetch<ApiExercise[]>('/api/exercises', {
+        headers: getRequestHeaders(),
+      });
       exercises.value = data.map((ex) => ({
         id: ex.id,
         name: ex.name,
@@ -101,7 +112,9 @@ export function useAppState() {
   const fetchLogs = async () => {
     if (!user.value) return;
     try {
-      const data = await $fetch<ApiLog[]>('/api/logs');
+      const data = await $fetch<ApiLog[]>('/api/logs', {
+        headers: getRequestHeaders(),
+      });
       logs.value = data.map((log) => ({
         id: log.id,
         exerciseId: log.exerciseId,
@@ -117,7 +130,9 @@ export function useAppState() {
   const fetchBodyMetrics = async () => {
     if (!user.value) return;
     try {
-      const data = await $fetch<ApiBodyMetric[]>('/api/metrics');
+      const data = await $fetch<ApiBodyMetric[]>('/api/metrics', {
+        headers: getRequestHeaders(),
+      });
       bodyMetrics.value = data;
     } catch (e) {
       console.error('Failed to fetch body metrics:', e);
@@ -134,18 +149,44 @@ export function useAppState() {
     }
   };
 
-  // Initialize - fetch user and data
+  // Initialize - fetch user and data (singleton pattern to prevent race conditions)
   const initialize = async () => {
+    // Already initialized (check both flag and actual data for hydration)
     if (isInitialized.value) return;
-    isLoading.value = true;
-    try {
-      const loggedIn = await fetchUser();
-      if (loggedIn) {
-        await Promise.all([fetchExercises(), fetchLogs(), fetchBodyMetrics()]);
-      }
-    } finally {
-      isLoading.value = false;
+
+    // On client: if we already have user data from SSR hydration, just mark as initialized
+    if (import.meta.client && user.value) {
       isInitialized.value = true;
+      return;
+    }
+
+    // On client: if initialization is in progress, wait for it
+    if (import.meta.client && clientInitPromise) {
+      await clientInitPromise;
+      return;
+    }
+
+    // Start initialization
+    const doInit = async () => {
+      isLoading.value = true;
+      try {
+        const loggedIn = await fetchUser();
+        if (loggedIn) {
+          await Promise.all([fetchExercises(), fetchLogs(), fetchBodyMetrics()]);
+        }
+      } finally {
+        isLoading.value = false;
+        isInitialized.value = true;
+      }
+    };
+
+    // On client: store promise to prevent race conditions
+    if (import.meta.client) {
+      clientInitPromise = doInit();
+      await clientInitPromise;
+    } else {
+      // On server: just run directly (each request is isolated)
+      await doInit();
     }
   };
 
@@ -192,6 +233,7 @@ export function useAppState() {
     logs.value = [];
     bodyMetrics.value = [];
     isInitialized.value = false;
+    clientInitPromise = null; // Reset so reinitialization works after login
   };
 
   // Add exercise

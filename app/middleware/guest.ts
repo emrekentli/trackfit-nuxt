@@ -8,6 +8,6 @@ export default defineNuxtRouteMiddleware(async () => {
 
   // Redirect to train page if already authenticated
   if (user.value) {
-    return navigateTo('/train');
+    return navigateTo('/train', { replace: true });
   }
 });

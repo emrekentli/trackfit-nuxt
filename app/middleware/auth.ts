@@ -8,6 +8,6 @@ export default defineNuxtRouteMiddleware(async () => {
 
   // Redirect to home if not authenticated
   if (!user.value) {
-    return navigateTo('/');
+    return navigateTo('/', { replace: true });
   }
 });
