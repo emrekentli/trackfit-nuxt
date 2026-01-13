@@ -23,99 +23,6 @@
       </div>
     </div>
 
-    <form
-      v-if="showForm"
-      @submit.prevent="handleSubmit"
-      class="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 space-y-4 animate-in slide-in-from-top-4"
-    >
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="text-xs font-black text-zinc-400 uppercase tracking-widest">
-          {{ isEditing ? 'Egzersiz Düzenle' : 'Yeni Egzersiz' }}
-        </h3>
-        <button
-          v-if="isEditing"
-          type="button"
-          @click="resetForm"
-          class="text-zinc-600 hover:text-zinc-400 text-[10px] font-bold uppercase"
-        >
-          İptal
-        </button>
-      </div>
-
-      <div
-        @click="fileInput?.click()"
-        class="w-full h-32 bg-zinc-950 rounded-2xl border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center text-zinc-600 hover:border-violet-500/50 cursor-pointer overflow-hidden transition-all"
-      >
-        <img v-if="newEx.imageUrl" :src="newEx.imageUrl" class="w-full h-full object-cover" />
-        <template v-else>
-          <i class="fa-solid fa-camera-retro text-xl mb-1"></i>
-          <span class="text-[10px] font-black uppercase">Görsel Ekle</span>
-        </template>
-        <input ref="fileInput" type="file" @change="handleImageChange" class="hidden" accept="image/*" />
-      </div>
-
-      <div class="space-y-3">
-        <input
-          v-model="newEx.name"
-          type="text"
-          required
-          placeholder="Egzersiz Adı"
-          class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-100"
-        />
-        <div class="grid grid-cols-2 gap-3">
-          <select
-            v-model="newEx.day"
-            class="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-zinc-400 appearance-none"
-          >
-            <option v-for="d in DAYS" :key="d" :value="d">{{ DAY_LABELS[d] }}</option>
-          </select>
-          <div class="flex gap-2">
-            <input
-              v-model.number="newEx.targetSets"
-              type="number"
-              placeholder="Sets"
-              class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-center text-xs font-bold text-zinc-100"
-            />
-            <input
-              v-model="newEx.targetReps"
-              type="text"
-              placeholder="Reps"
-              class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-center text-xs font-bold text-zinc-100"
-            />
-          </div>
-        </div>
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <label class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1 block">Superset Grubu</label>
-            <select
-              v-model="newEx.supersetGroup"
-              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-zinc-400 appearance-none"
-            >
-              <option :value="null">Yok</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
-          </div>
-        </div>
-        <textarea
-          v-model="newEx.notes"
-          placeholder="Notlar..."
-          class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-medium text-zinc-400 h-20 resize-none"
-        />
-      </div>
-      <button
-        type="submit"
-        :class="[
-          'w-full py-4 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl',
-          isEditing ? 'bg-amber-600 shadow-amber-600/20' : 'bg-violet-600 shadow-violet-600/20'
-        ]"
-      >
-        {{ isEditing ? 'Güncelle' : 'Egzersiz Oluştur' }}
-      </button>
-    </form>
-
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       <template v-for="day in DAYS" :key="day">
         <div v-if="getExercisesForDay(day).length > 0" class="space-y-3">
@@ -166,6 +73,112 @@
         </div>
       </template>
     </div>
+
+
+
+    <!-- Exercise Form Modal -->
+    <Teleport to="body">
+      <div v-if="showForm" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <form
+          @submit.prevent="handleSubmit"
+          class="bg-zinc-900 border border-zinc-800 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl sm:max-h-none sm:overflow-visible sm:rounded-3xl p-5 space-y-4"
+        >
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Program</p>
+              <h3 class="text-sm font-black text-white uppercase tracking-wider">
+                {{ isEditing ? 'Egzersiz Duzenle' : 'Yeni Egzersiz' }}
+              </h3>
+            </div>
+            <button type="button" @click="resetForm" class="text-zinc-500 hover:text-white">
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+          </div>
+
+          <div
+            @click="fileInput?.click()"
+            class="w-full h-32 bg-zinc-950 rounded-2xl border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center text-zinc-600 hover:border-violet-500/50 cursor-pointer overflow-hidden transition-all"
+          >
+            <img v-if="newEx.imageUrl" :src="newEx.imageUrl" class="w-full h-full object-cover" />
+            <template v-else>
+              <i class="fa-solid fa-camera-retro text-xl mb-1"></i>
+              <span class="text-[10px] font-black uppercase">Gorsel Ekle</span>
+            </template>
+            <input ref="fileInput" type="file" @change="handleImageChange" class="hidden" accept="image/*" />
+          </div>
+
+          <div class="space-y-3">
+            <input
+              v-model="newEx.name"
+              type="text"
+              required
+              placeholder="Egzersiz Adi"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-zinc-100"
+            />
+            <div class="grid grid-cols-2 gap-3">
+              <select
+                v-model="newEx.day"
+                class="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-zinc-400 appearance-none"
+              >
+                <option v-for="d in DAYS" :key="d" :value="d">{{ DAY_LABELS[d] }}</option>
+              </select>
+              <div class="flex gap-2">
+                <input
+                  v-model.number="newEx.targetSets"
+                  type="number"
+                  placeholder="Sets"
+                  class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-center text-xs font-bold text-zinc-100"
+                />
+                <input
+                  v-model="newEx.targetReps"
+                  type="text"
+                  placeholder="Reps"
+                  class="w-1/2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-3 text-center text-xs font-bold text-zinc-100"
+                />
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <label class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-1 block">Superset Grubu</label>
+                <select
+                  v-model="newEx.supersetGroup"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold text-zinc-400 appearance-none"
+                >
+                  <option :value="null">Yok</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+              </div>
+            </div>
+            <textarea
+              v-model="newEx.notes"
+              placeholder="Notlar..."
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs font-medium text-zinc-400 h-20 resize-none"
+            />
+          </div>
+          <div class="flex gap-3 pt-2">
+            <button
+              type="button"
+              @click="resetForm"
+              class="w-1/2 bg-zinc-800 text-zinc-300 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest"
+            >
+              Vazgec
+            </button>
+            <button
+              type="submit"
+              :class="[
+                'w-1/2 py-3 text-white rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl',
+                isEditing ? 'bg-amber-600 shadow-amber-600/20' : 'bg-violet-600 shadow-violet-600/20'
+              ]"
+            >
+              {{ isEditing ? 'Guncelle' : 'Egzersiz Olustur' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Teleport>
 
     <!-- Exercise Library Modal -->
     <ExerciseLibraryModal
