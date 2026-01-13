@@ -28,8 +28,8 @@
         </div>
 
         <!-- Muscle Group Filters -->
-        <div class="p-3 border-b border-zinc-800 overflow-x-auto no-scrollbar">
-          <div class="flex gap-2">
+        <div class="p-3 border-b border-zinc-800 overflow-x-auto no-scrollbar flex-shrink-0">
+          <div class="flex gap-2 min-w-max">
             <button
               @click="selectedMuscleGroup = null"
               :class="[
