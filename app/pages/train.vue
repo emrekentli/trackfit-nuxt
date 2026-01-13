@@ -100,16 +100,16 @@
                     ex.supersetGroup ? 'pl-5' : ''
                   ]"
                 >
-                  <div class="min-w-0 pr-2">
-                    <div class="flex items-center gap-1.5">
+                  <div class="min-w-0 pr-2 overflow-x-auto no-scrollbar">
+                    <div class="flex items-center gap-1.5 whitespace-nowrap">
                       <h4
-                        class="text-[11px] font-black text-white uppercase italic truncate group-hover:text-violet-400 transition-colors tracking-tighter"
+                        class="text-[11px] font-black text-white uppercase italic group-hover:text-violet-400 transition-colors tracking-tighter"
                       >
                         {{ ex.name }}
                       </h4>
                       <span
                         v-if="isPR(ex.id, getTodayLog(ex.id)?.weight || 0)"
-                        class="bg-emerald-500 text-[7px] font-black px-1 rounded-sm text-black animate-bounce"
+                        class="bg-emerald-500 text-[7px] font-black px-1 rounded-sm text-black animate-bounce flex-shrink-0"
                       >
                         PR
                       </span>
