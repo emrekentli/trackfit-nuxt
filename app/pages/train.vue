@@ -269,14 +269,14 @@
                   step="1"
                   min="0"
                   max="5"
-                  placeholder="RIR (opsiyonel)"
+                  placeholder="RIR (oneriler icin)"
                   class="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-[11px] font-black text-zinc-100"
                 />
               </div>
             </div>
 
             <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
-              Sadece kilo zorunlu, rep ve RIR opsiyonel.
+              Kilo zorunlu. RPE bazli daha iyi oneri icin rep ve ozellikle son set RIR gir.
             </p>
 
             <div class="flex gap-3">
@@ -455,6 +455,7 @@ const DEFAULT_WEIGHT_STEP = 2.5;
 const LIGHT_WEIGHT_STEP = 1.25;
 const HEAVY_WEIGHT_STEP = 5;
 const PROGRESSION_LOOKBACK = 3;
+const DEFAULT_TARGET_RPE = 8;
 
 const formatWeight = (value: number) => {
   const rounded = Math.round(value * 100) / 100;
@@ -482,6 +483,65 @@ const getTargetRepHint = (targetReps: string) => {
   const repValue = Number.parseInt(match[0], 10);
   if (Number.isNaN(repValue)) return null;
   return repValue;
+};
+
+const getTargetRpe = (notes: string) => {
+  const match = notes.match(/\bRPE\s*(10|[1-9])\b/i);
+  if (!match) return null;
+  const parsed = Number.parseInt(match[1] || '', 10);
+  if (Number.isNaN(parsed)) return null;
+  return Math.min(10, Math.max(6, parsed));
+};
+
+const getTargetRir = (targetRpe: number) => {
+  return Math.max(0, 10 - targetRpe);
+};
+
+const getRpeFromRir = (rir: number | null) => {
+  if (rir === null) return null;
+  return 10 - rir;
+};
+
+const COMPOUND_KEYWORDS = [
+  'squat',
+  'deadlift',
+  'bench press',
+  'military press',
+  'overhead press',
+  'row',
+  'lunge',
+  'dip',
+  'hip thrust',
+  'pulldown',
+];
+
+const isCompoundExercise = (exercise: Exercise) => {
+  const name = exercise.name.toLowerCase();
+  return COMPOUND_KEYWORDS.some((keyword) => name.includes(keyword));
+};
+
+const getDisciplineNote = (
+  exercise: Exercise,
+  action: 'up' | 'down' | 'hold',
+  lastRir: number | null
+) => {
+  if (isCompoundExercise(exercise)) {
+    if (action === 'down' || lastRir === null) {
+      return 'Compound hareket: set aralarinda en az 3 dk dinlen, form bozulursa seti bitir.';
+    }
+    if (action === 'up') {
+      return 'Compound hareket: artisi kucuk tut, son seti gazla hedef RPE ustune tasirma.';
+    }
+    return 'Compound hareket: dinlenmeyi kisma; brace ve teknik sabit kalsin.';
+  }
+
+  if (action === 'down') {
+    return 'Izolasyon hareketi: savurma yok, eksantrigi kontrol et ve kasi bilincli sik.';
+  }
+  if (action === 'up') {
+    return 'Izolasyon hareketi: kilo artsa bile tempo bozulmasin, gerilim kas uzerinde kalsin.';
+  }
+  return 'Izolasyon hareketi: hareketi degistirme; once daha temiz tempo ya da +1 tekrar kovala.';
 };
 
 const getISOWeekKey = (dateStr: string) => {
@@ -560,14 +620,20 @@ const weeklySuggestions = computed(() => {
     .map((exercise) => {
       const hasTodaySets = getTodaySets(exercise.id).length > 0;
       const targetRep = getTargetRepHint(exercise.targetReps);
+      const noteTargetRpe = getTargetRpe(exercise.notes || '');
+      const targetRpe = noteTargetRpe ?? DEFAULT_TARGET_RPE;
+      const targetRir = getTargetRir(targetRpe);
+      const targetRirMin = Math.max(0, targetRir - 1);
+      const targetRirMax = targetRir + 1;
       const dailySummaries = getExerciseDailySummaries(exercise.id);
       if (dailySummaries.length === 0) {
+        const disciplineNote = getDisciplineNote(exercise, 'hold', null);
         return {
           exerciseId: exercise.id,
           name: exercise.name,
           sets: `${exercise.targetSets}x${exercise.targetReps}`,
           message:
-            'Bugun ilk kayit. Hedef set/reps ile basla, ilk kilonu gir. Sonraki antrenmanda otomatik oneri alirsin.',
+            `Bugun ilk kayit. Hedef RPE ${targetRpe} (~${targetRir} RIR). Agirligi ego ile degil bu hisse gore sec, son sette kalan tekrari yaz. ${disciplineNote}`,
         };
       }
 
@@ -591,14 +657,18 @@ const weeklySuggestions = computed(() => {
       const previousE1rm = e1rmValues[1] ?? null;
 
       const completionRate = lastStats.completionRate;
-      const successRate =
+      const completedAllSets =
         completionRate !== null
-          ? completionRate
-          : (() => {
-              const rirSamples = recentLogs.filter((l) => l.rir !== null && l.rir !== undefined);
-              if (rirSamples.length === 0) return null;
-              return rirSamples.filter((l) => (l.rir ?? 0) >= 1).length / rirSamples.length;
-            })();
+          ? completionRate >= 1
+          : lastStats.setCount >= exercise.targetSets;
+      const missedTooManyReps =
+        completionRate !== null
+          ? completionRate < 0.75
+          : lastStats.setCount < exercise.targetSets;
+      const easierThanTarget = lastRir !== null && lastRir > targetRirMax;
+      const harderThanTarget = lastRir !== null && lastRir < targetRirMin;
+      const onTarget = lastRir !== null && lastRir >= targetRirMin && lastRir <= targetRirMax;
+      const previousOnTarget = prevRir !== null && prevRir >= targetRirMin && prevRir <= targetRirMax;
 
       let trend: 'up' | 'down' | 'flat' = 'flat';
       if (prev && prev2) {
@@ -610,36 +680,54 @@ const weeklySuggestions = computed(() => {
       }
 
       let suggestedWeight = last.maxWeight;
-      let action = 'hold';
+      let action: 'up' | 'down' | 'hold' = 'hold';
+      let actionReason = 'hold';
 
-      if (completionRate !== null && completionRate < 0.5) {
+      if (harderThanTarget) {
         suggestedWeight = Math.max(0, last.maxWeight - step);
         action = 'down';
-      } else if (completionRate !== null && completionRate >= 1 && lastRir !== null && lastRir >= 2) {
-        suggestedWeight = last.maxWeight + step;
-        action = 'up';
-      } else if (trend === 'down') {
+        actionReason = 'rpe-too-high';
+      } else if (missedTooManyReps) {
         suggestedWeight = Math.max(0, last.maxWeight - step);
         action = 'down';
-      } else if (successRate !== null && successRate >= 0.8) {
+        actionReason = 'reps-missed';
+      } else if (easierThanTarget && completedAllSets) {
         suggestedWeight = last.maxWeight + step;
         action = 'up';
-      } else if (lastRir !== null && prevRir !== null && lastRir >= 2 && prevRir >= 2) {
+        actionReason = 'rpe-too-low';
+      } else if (onTarget && completedAllSets && previousOnTarget && trend !== 'down') {
         suggestedWeight = last.maxWeight + step;
         action = 'up';
+        actionReason = 'progress';
+      } else if (trend === 'down' && !completedAllSets) {
+        suggestedWeight = Math.max(0, last.maxWeight - step);
+        action = 'down';
+        actionReason = 'trend-down';
       }
 
       const repsNote =
-        action === 'hold' && targetRep !== null
-          ? `Bu kiloda her sette +1 tekrar hedefle. RIR >=2 olursa artir.`
+        action === 'hold' && targetRep !== null && completedAllSets
+          ? 'Agirlik sabit. Sonraki antrenmanda +1 tekrar ya da daha temiz form hedefle.'
+          : action === 'hold' && targetRep !== null
+            ? 'Ayni kiloda once tum setleri hedef tekrar kalitesinde tamamla.'
           : null;
 
       const successNote =
-        successRate !== null
-          ? `Basari orani: %${Math.round(successRate * 100)}.`
+        completionRate !== null
+          ? `Hedef tekrar tamamlama: %${Math.round(completionRate * 100)}.`
           : targetRep !== null
-            ? 'Rep verisi girilmedi, RIR/trend ile degerlendirildi.'
-            : 'Hedef tekrar bulunamadi, trend ile degerlendirildi.';
+            ? 'Rep verisi eksik; tamamlama yerine set sayisi ve RIR ile degerlendirildi.'
+            : 'Hedef tekrar bulunamadi; RIR ve trend ile degerlendirildi.';
+
+      const targetNote =
+        noteTargetRpe !== null
+          ? `Hedef RPE ${targetRpe} (~${targetRir} RIR).`
+          : `Notlarda RPE yok; varsayilan hedef RPE ${targetRpe} (~${targetRir} RIR).`;
+
+      const actualRpeNote =
+        lastRir !== null
+          ? `Son set: RPE ${getRpeFromRir(lastRir)} (~${lastRir} RIR).`
+          : 'Son set RIR girilmedi; RPE bazli oneri zayifladi.';
 
       const e1rmNote =
         currentE1rm !== null
@@ -652,20 +740,34 @@ const weeklySuggestions = computed(() => {
 
       let actionNote = '';
       if (action === 'up') {
-        actionNote = `Sonraki antrenmanda ${formatWeight(suggestedWeight)} kg dene (adim ${formatWeight(step)}).`;
+        actionNote =
+          actionReason === 'rpe-too-low'
+            ? `Hedef RPE'nin altinda kaldin. Sonraki antrenmanda ${formatWeight(suggestedWeight)} kg dene (adim ${formatWeight(step)}).`
+            : `Iki seanstir hedefi kontrol ettin. Kucuk artis zamani: ${formatWeight(suggestedWeight)} kg.`;
       } else if (action === 'down') {
-        actionNote = `Bu kiloda zorlandin, ${formatWeight(suggestedWeight)} kg ile tekrar dene.`;
+        actionNote =
+          actionReason === 'rpe-too-high'
+            ? `Set hedef RPE'nin ustune tasmis. ${formatWeight(suggestedWeight)} kg ile formu ve kontrolden cikmayan hizi koru.`
+            : `Hedef tekrarlar dagildi. ${formatWeight(suggestedWeight)} kg ile tekrar oturt.`;
       } else {
-        actionNote = `Agirlik sabit, formu koru ve tekrar artir.`;
+        actionNote =
+          lastRir === null
+            ? 'Agirlik sabit. Sonraki sefer ozellikle son set RIR gir ki sistem RPE bazli daha net yonlendirsin.'
+            : 'Agirlik uygun gorunuyor. Formu bozma, dinlenmeyi kontrol et ve temiz tekrar kovala.';
       }
+
+      const disciplineNote = getDisciplineNote(exercise, action, lastRir);
 
       const messageParts = [
         todayNote,
+        targetNote,
         `Son ${recentLogs.length} antrenmanda en iyi ${formatWeight(last.maxWeight)} kg.`,
+        actualRpeNote,
         successNote,
         e1rmNote,
         actionNote,
         repsNote,
+        disciplineNote,
       ].filter(Boolean);
 
       return {
