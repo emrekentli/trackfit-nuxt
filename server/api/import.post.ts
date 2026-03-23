@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
           notes: exercise.notes || '',
           targetSets: exercise.targetSets || 3,
           targetReps: exercise.targetReps || '10',
+          archived: exercise.archived === true,
           imageUrl: exercise.imageUrl || null,
           muscleGroup: exercise.muscleGroup || null,
           supersetGroup: exercise.supersetGroup,

@@ -13,6 +13,7 @@ interface ApiExercise {
   notes: string;
   targetSets: number;
   targetReps: string;
+  archived: boolean;
   imageUrl?: string;
   muscleGroup?: string | null;
   supersetGroup?: string | null;
@@ -101,6 +102,7 @@ export function useAppState() {
         notes: ex.notes,
         targetSets: ex.targetSets,
         targetReps: ex.targetReps,
+        archived: ex.archived ?? false,
         imageUrl: ex.imageUrl,
         muscleGroup: ex.muscleGroup as MuscleGroup | null | undefined,
         supersetGroup: ex.supersetGroup,
@@ -256,6 +258,7 @@ export function useAppState() {
       notes: data.notes,
       targetSets: data.targetSets,
       targetReps: data.targetReps,
+      archived: data.archived ?? false,
       imageUrl: data.imageUrl,
       muscleGroup: data.muscleGroup as MuscleGroup | null | undefined,
       supersetGroup: data.supersetGroup,
@@ -286,12 +289,31 @@ export function useAppState() {
         notes: data.notes,
         targetSets: data.targetSets,
         targetReps: data.targetReps,
+        archived: data.archived ?? false,
         imageUrl: data.imageUrl,
         muscleGroup: data.muscleGroup as MuscleGroup | null | undefined,
         supersetGroup: data.supersetGroup,
         orderIndex: data.orderIndex,
       };
     }
+  };
+
+  const setExercisesArchived = async (ids: string[], archived: boolean) => {
+    const normalizedIds = [...new Set(ids.filter((id) => typeof id === 'string' && id.length > 0))];
+    if (normalizedIds.length === 0) return;
+
+    await $fetch('/api/exercises/archive', {
+      method: 'POST',
+      body: {
+        ids: normalizedIds,
+        archived,
+      },
+    });
+
+    const idSet = new Set(normalizedIds);
+    exercises.value = exercises.value.map((exercise) =>
+      idSet.has(exercise.id) ? { ...exercise, archived } : exercise
+    );
   };
 
   // Update log
@@ -383,6 +405,7 @@ export function useAppState() {
     logout,
     addExercise,
     updateExercise,
+    setExercisesArchived,
     removeExercise,
     updateWorkoutSets,
     updateBodyMetric,

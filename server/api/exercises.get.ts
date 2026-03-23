@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
     notes: ex.notes || '',
     targetSets: ex.targetSets || 3,
     targetReps: ex.targetReps || '10',
+    archived: ex.archived,
     imageUrl: ex.imageUrl || undefined,
     muscleGroup: ex.muscleGroup || null,
     supersetGroup: ex.supersetGroup || null,

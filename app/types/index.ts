@@ -21,6 +21,7 @@ export interface Exercise {
   notes: string;
   targetSets: number;
   targetReps: string;
+  archived: boolean;
   imageUrl?: string;
   muscleGroup?: MuscleGroup | null;
   supersetGroup?: string | null;

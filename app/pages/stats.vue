@@ -25,10 +25,26 @@
         <p class="text-zinc-500 text-xs font-medium">Güç artışını görselleştirin.</p>
       </div>
 
-      <!-- Exercise Selector -->
       <div class="flex overflow-x-auto no-scrollbar gap-2">
         <button
-          v-for="ex in exercises"
+          v-for="scope in exerciseScopes"
+          :key="scope.id"
+          @click="exerciseScope = scope.id"
+          :class="[
+            'flex-shrink-0 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border transition-all',
+            exerciseScope === scope.id
+              ? 'bg-violet-600 border-violet-500 text-white'
+              : 'bg-zinc-900/50 border-zinc-800 text-zinc-500'
+          ]"
+        >
+          {{ scope.label }}
+        </button>
+      </div>
+
+      <!-- Exercise Selector -->
+      <div v-if="filteredExercises.length > 0" class="flex overflow-x-auto no-scrollbar gap-2">
+        <button
+          v-for="ex in filteredExercises"
           :key="ex.id"
           @click="selectedExercise = ex.id"
           :class="[
@@ -42,14 +58,14 @@
         </button>
       </div>
 
-      <div v-if="selectedExerciseLogs.length < 2" class="bg-zinc-900 border border-zinc-800 rounded-3xl p-12 text-center">
+      <div v-if="filteredExercises.length === 0" class="bg-zinc-900 border border-zinc-800 rounded-3xl p-12 text-center">
         <i class="fa-solid fa-chart-line text-zinc-800 text-3xl mb-4"></i>
         <p class="text-zinc-600 text-[10px] font-bold uppercase tracking-widest leading-loose">
           Grafik için<br />daha fazla veriye ihtiyacın var
         </p>
       </div>
 
-      <div v-else class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-2xl space-y-4">
+      <div v-else-if="selectedExerciseLogs.length >= 2" class="bg-zinc-900 p-4 rounded-3xl border border-zinc-800 shadow-2xl space-y-4">
         <div>
           <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Max Kg</p>
           <div class="h-56">
@@ -64,16 +80,28 @@
         </div>
       </div>
 
+      <div v-else class="bg-zinc-900 border border-zinc-800 rounded-3xl p-12 text-center">
+        <i class="fa-solid fa-chart-line text-zinc-800 text-3xl mb-4"></i>
+        <p class="text-zinc-600 text-[10px] font-bold uppercase tracking-widest leading-loose">
+          Grafik icin<br />daha fazla veriye ihtiyacin var
+        </p>
+      </div>
+
       <!-- Exercise Stats List -->
-      <div class="grid gap-3">
+      <div v-if="filteredExercises.length > 0" class="grid gap-3">
         <div
-          v-for="ex in exercises"
+          v-for="ex in filteredExercises"
           :key="ex.id"
           class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl flex justify-between items-center group overflow-hidden relative"
         >
           <div class="absolute inset-y-0 left-0 w-1 bg-violet-600 group-hover:w-2 transition-all"></div>
           <div>
-            <h4 class="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{{ ex.name }}</h4>
+            <div class="flex items-center gap-2">
+              <h4 class="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{{ ex.name }}</h4>
+              <span v-if="ex.archived" class="text-[8px] font-black text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded">
+                Arsiv
+              </span>
+            </div>
             <p class="text-sm font-black text-zinc-200 mt-1 uppercase italic tracking-tighter">
               {{ getLatestWeight(ex.id) }}
             </p>
@@ -100,7 +128,7 @@
 
       <div v-else class="space-y-4">
         <div
-          v-for="(group, index) in groupedLogs"
+          v-for="group in groupedLogs"
           :key="group.date"
           class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
         >
@@ -407,7 +435,14 @@ const tabs = [
   { id: 'data', label: 'Veri', icon: 'fa-database' },
 ];
 
+const exerciseScopes = [
+  { id: 'active', label: 'Aktif' },
+  { id: 'all', label: 'Tum' },
+  { id: 'archived', label: 'Arsiv' },
+] as const;
+
 const activeTab = ref('charts');
+const exerciseScope = ref<(typeof exerciseScopes)[number]['id']>('active');
 const selectedExercise = ref<string | null>(null);
 const showMetricModal = ref(false);
 const importStatus = ref<{ success: boolean; message: string } | null>(null);
@@ -426,11 +461,19 @@ const newMetric = ref({
   notes: '',
 });
 
+const filteredExercises = computed(() => {
+  if (exerciseScope.value === 'all') return exercises.value;
+  if (exerciseScope.value === 'archived') return exercises.value.filter((exercise) => exercise.archived);
+  return exercises.value.filter((exercise) => !exercise.archived);
+});
+
 // Set default selected exercise
 watchEffect(() => {
-  const firstExercise = exercises.value[0];
-  if (exercises.value.length > 0 && !selectedExercise.value && firstExercise) {
-    selectedExercise.value = firstExercise.id;
+  const firstExercise = filteredExercises.value[0];
+  const hasSelectedExercise = filteredExercises.value.some((exercise) => exercise.id === selectedExercise.value);
+
+  if (!hasSelectedExercise) {
+    selectedExercise.value = firstExercise?.id || null;
   }
 });
 
@@ -643,7 +686,7 @@ const handleImport = async (event: Event) => {
       success: true,
       message: `${result.imported.exercises} egzersiz, ${result.imported.logs} kayıt, ${result.imported.bodyMetrics} ölçüm içe aktarıldı`,
     };
-  } catch (e) {
+  } catch {
     importStatus.value = {
       success: false,
       message: 'İçe aktarma başarısız. Dosya formatını kontrol edin.',

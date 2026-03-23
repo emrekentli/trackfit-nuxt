@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
 
   const exportData = {
-    version: '1.1',
+    version: '1.2',
     exportedAt: new Date().toISOString(),
     user: {
       email: user?.email,
@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
       notes: e.notes,
       targetSets: e.targetSets,
       targetReps: e.targetReps,
+      archived: e.archived,
       imageUrl: e.imageUrl,
       muscleGroup: e.muscleGroup,
       supersetGroup: e.supersetGroup,

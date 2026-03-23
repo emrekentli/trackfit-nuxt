@@ -324,14 +324,15 @@ const selectedDay = ref<DayOfWeek>(
 
 const timer = ref<number | null>(null);
 const isMuted = ref(false);
-const todayDate = new Date().toISOString().split('T')[0];
+const todayDate = new Date().toISOString().slice(0, 10);
 const showSetModal = ref(false);
 const activeExercise = ref<Exercise | null>(null);
 const setRows = ref<{ setIndex: number; weight: string; reps: string; rir: string }[]>([]);
 const bulkWeight = ref('');
+const activeExercises = computed(() => exercises.value.filter((exercise) => !exercise.archived));
 
 const todaysExercises = computed(() => {
-  return exercises.value
+  return activeExercises.value
     .filter((ex) => ex.day === selectedDay.value)
     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
 });
@@ -691,8 +692,8 @@ const getSuggestionForExercise = (exerciseId: string) => {
 
 const weeklyProgress = computed(() => {
   const currentWeekKey = getISOWeekKey(todayDate);
-  const total = exercises.value.length;
-  const completed = exercises.value.filter((exercise) =>
+  const total = activeExercises.value.length;
+  const completed = activeExercises.value.filter((exercise) =>
     getExerciseDailySummaries(exercise.id).some((summary) => getISOWeekKey(summary.date) === currentWeekKey)
   ).length;
 

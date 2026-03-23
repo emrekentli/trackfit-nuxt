@@ -5,7 +5,18 @@ export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event);
   const body = await readBody(event);
 
-  const { name, day, notes, targetSets, targetReps, imageUrl } = body;
+  const {
+    name,
+    day,
+    notes,
+    targetSets,
+    targetReps,
+    archived,
+    imageUrl,
+    muscleGroup,
+    supersetGroup,
+    orderIndex,
+  } = body;
 
   if (!name || !day) {
     throw createError({
@@ -23,7 +34,11 @@ export default defineEventHandler(async (event) => {
     notes: notes || '',
     targetSets: targetSets || 3,
     targetReps: targetReps || '10',
+    archived: archived === true,
     imageUrl: imageUrl || null,
+    muscleGroup: muscleGroup || null,
+    supersetGroup: supersetGroup || null,
+    orderIndex: orderIndex || 0,
   }).returning();
 
   if (!exercise) {
@@ -40,6 +55,10 @@ export default defineEventHandler(async (event) => {
     notes: exercise.notes || '',
     targetSets: exercise.targetSets || 3,
     targetReps: exercise.targetReps || '10',
+    archived: exercise.archived,
     imageUrl: exercise.imageUrl || undefined,
+    muscleGroup: exercise.muscleGroup || null,
+    supersetGroup: exercise.supersetGroup || null,
+    orderIndex: exercise.orderIndex || 0,
   };
 });

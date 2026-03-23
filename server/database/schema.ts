@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, integer, date, timestamp, real } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, date, timestamp, real, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Users table
@@ -23,6 +23,7 @@ export const exercises = pgTable('exercises', {
   muscleGroup: varchar('muscle_group', { length: 50 }), // Chest, Back, Shoulders, Arms, Legs, Abs, etc.
   supersetGroup: varchar('superset_group', { length: 50 }), // Group exercises as superset (e.g., "A", "B")
   orderIndex: integer('order_index').default(0), // For ordering exercises within a day
+  archived: boolean('archived').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
