@@ -25,9 +25,10 @@ export default defineEventHandler(async (event) => {
   const metrics = await db.query.bodyMetrics.findMany({
     where: eq(schema.bodyMetrics.userId, userId),
   });
+  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
 
   const exportData = {
-    version: '1.0',
+    version: '1.1',
     exportedAt: new Date().toISOString(),
     user: {
       email: user?.email,
@@ -39,11 +40,14 @@ export default defineEventHandler(async (event) => {
       notes: e.notes,
       targetSets: e.targetSets,
       targetReps: e.targetReps,
+      imageUrl: e.imageUrl,
+      muscleGroup: e.muscleGroup,
       supersetGroup: e.supersetGroup,
       orderIndex: e.orderIndex,
     })),
     logs: logs.map((l) => ({
-      exerciseName: exercises.find((e) => e.id === l.exerciseId)?.name,
+      exerciseName: exerciseById.get(l.exerciseId)?.name,
+      exerciseDay: exerciseById.get(l.exerciseId)?.day,
       date: l.date,
       weight: l.weight / 1000, // Convert to kg
       rir: l.rir ?? null,

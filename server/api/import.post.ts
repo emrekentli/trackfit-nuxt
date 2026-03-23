@@ -18,45 +18,55 @@ export default defineEventHandler(async (event) => {
   let importedExercises = 0;
   let importedLogs = 0;
   let importedMetrics = 0;
+  const userExercises = await db.query.exercises.findMany({
+    where: eq(schema.exercises.userId, userId),
+  });
 
   // Import exercises
   if (body.exercises && Array.isArray(body.exercises)) {
     for (const exercise of body.exercises) {
-      // Check if exercise already exists
-      const existing = await db.query.exercises.findFirst({
-        where: eq(schema.exercises.userId, userId),
-      });
+      if (!exercise?.name || !exercise?.day) {
+        continue;
+      }
 
-      // Only insert if it doesn't exist (by name and day)
-      const existingByName = await db.query.exercises.findFirst({
-        where: eq(schema.exercises.name, exercise.name),
-      });
+      const existingExercise = userExercises.find(
+        (current) => current.name === exercise.name && current.day === exercise.day
+      );
 
-      if (!existingByName) {
-        await db.insert(schema.exercises).values({
+      if (!existingExercise) {
+        const [insertedExercise] = await db.insert(schema.exercises).values({
           userId,
           name: exercise.name,
           day: exercise.day,
           notes: exercise.notes || '',
           targetSets: exercise.targetSets || 3,
           targetReps: exercise.targetReps || '10',
+          imageUrl: exercise.imageUrl || null,
+          muscleGroup: exercise.muscleGroup || null,
           supersetGroup: exercise.supersetGroup,
           orderIndex: exercise.orderIndex || 0,
-        });
-        importedExercises++;
+        }).returning();
+
+        if (insertedExercise) {
+          userExercises.push(insertedExercise);
+          importedExercises++;
+        }
       }
     }
   }
 
   // Import workout logs
   if (body.logs && Array.isArray(body.logs)) {
-    // Get all exercises for this user to map names to IDs
-    const userExercises = await db.query.exercises.findMany({
-      where: eq(schema.exercises.userId, userId),
-    });
-
     for (const log of body.logs) {
-      const exercise = userExercises.find((e) => e.name === log.exerciseName);
+      if (!log?.exerciseName || !log?.date || typeof log.weight !== 'number') {
+        continue;
+      }
+
+      const exercise = userExercises.find((current) =>
+        current.name === log.exerciseName
+        && (!log.exerciseDay || current.day === log.exerciseDay)
+      );
+
       if (exercise) {
         await db.insert(schema.workoutLogs).values({
           userId,
