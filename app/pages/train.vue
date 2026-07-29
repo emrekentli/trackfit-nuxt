@@ -125,10 +125,10 @@
                       </span>
                     </div>
                     <p
-                      v-if="getSuggestionForExercise(ex.id)"
+                      v-if="ex.notes"
                       class="text-[9px] font-medium text-zinc-500 leading-snug whitespace-normal"
                     >
-                      {{ getSuggestionForExercise(ex.id) }}
+                      {{ ex.notes }}
                     </p>
                   </div>
 
@@ -269,14 +269,14 @@
                   step="1"
                   min="0"
                   max="5"
-                  placeholder="RIR (oneriler icin)"
+                  placeholder="RIR (opsiyonel)"
                   class="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-[11px] font-black text-zinc-100"
                 />
               </div>
             </div>
 
             <p class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
-              Kilo zorunlu. RPE bazli daha iyi oneri icin rep ve ozellikle son set RIR gir.
+              Kilo zorunlu. Rep ve RIR opsiyonel.
             </p>
 
             <div class="flex gap-3">
@@ -390,26 +390,23 @@ const prCount = computed(() => {
 });
 
 const getExerciseDailySummaries = (exerciseId: string) => {
-  const summaries = new Map<string, { date: string; maxWeight: number; latestSetIndex: number; rir: number | null }>();
+  const summaries = new Map<string, { date: string; maxWeight: number }>();
 
   logs.value
     .filter((log) => log.exerciseId === exerciseId)
     .forEach((log) => {
       const existing = summaries.get(log.date);
-      const logRir = log.rir ?? null;
       if (!existing) {
         summaries.set(log.date, {
           date: log.date,
           maxWeight: log.weight,
-          latestSetIndex: log.setIndex,
-          rir: logRir,
         });
         return;
       }
-      const maxWeight = Math.max(existing.maxWeight, log.weight);
-      const latestSetIndex = Math.max(existing.latestSetIndex, log.setIndex);
-      const rir = log.setIndex >= existing.latestSetIndex ? logRir : existing.rir;
-      summaries.set(log.date, { date: log.date, maxWeight, latestSetIndex, rir });
+      summaries.set(log.date, {
+        date: log.date,
+        maxWeight: Math.max(existing.maxWeight, log.weight),
+      });
     });
 
   return Array.from(summaries.values()).sort(
@@ -451,97 +448,10 @@ const isPR = (exerciseId: string, weight: number) => {
   return weight >= historicalMax && weight > 0;
 };
 
-const DEFAULT_WEIGHT_STEP = 2.5;
-const LIGHT_WEIGHT_STEP = 1.25;
-const HEAVY_WEIGHT_STEP = 5;
-const PROGRESSION_LOOKBACK = 3;
-const DEFAULT_TARGET_RPE = 8;
-
 const formatWeight = (value: number) => {
   const rounded = Math.round(value * 100) / 100;
   if (Number.isInteger(rounded)) return `${rounded}`;
   return rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
-};
-
-const getWeightStep = (muscleGroup: Exercise['muscleGroup']) => {
-  if (!muscleGroup) return DEFAULT_WEIGHT_STEP;
-  if (muscleGroup === 'Legs' || muscleGroup === 'Back') return HEAVY_WEIGHT_STEP;
-  if (
-    muscleGroup === 'Rear Delts' ||
-    muscleGroup === 'Forearms' ||
-    muscleGroup === 'Calves' ||
-    muscleGroup === 'Abs'
-  ) {
-    return LIGHT_WEIGHT_STEP;
-  }
-  return DEFAULT_WEIGHT_STEP;
-};
-
-const getTargetRepHint = (targetReps: string) => {
-  const match = targetReps.match(/\d+/);
-  if (!match) return null;
-  const repValue = Number.parseInt(match[0], 10);
-  if (Number.isNaN(repValue)) return null;
-  return repValue;
-};
-
-const getTargetRpe = (notes: string) => {
-  const match = notes.match(/\bRPE\s*(10|[1-9])\b/i);
-  if (!match) return null;
-  const parsed = Number.parseInt(match[1] || '', 10);
-  if (Number.isNaN(parsed)) return null;
-  return Math.min(10, Math.max(6, parsed));
-};
-
-const getTargetRir = (targetRpe: number) => {
-  return Math.max(0, 10 - targetRpe);
-};
-
-const getRpeFromRir = (rir: number | null) => {
-  if (rir === null) return null;
-  return 10 - rir;
-};
-
-const COMPOUND_KEYWORDS = [
-  'squat',
-  'deadlift',
-  'bench press',
-  'military press',
-  'overhead press',
-  'row',
-  'lunge',
-  'dip',
-  'hip thrust',
-  'pulldown',
-];
-
-const isCompoundExercise = (exercise: Exercise) => {
-  const name = exercise.name.toLowerCase();
-  return COMPOUND_KEYWORDS.some((keyword) => name.includes(keyword));
-};
-
-const getDisciplineNote = (
-  exercise: Exercise,
-  action: 'up' | 'down' | 'hold',
-  lastRir: number | null
-) => {
-  if (isCompoundExercise(exercise)) {
-    if (action === 'down' || lastRir === null) {
-      return 'Compound hareket: set aralarinda en az 3 dk dinlen, form bozulursa seti bitir.';
-    }
-    if (action === 'up') {
-      return 'Compound hareket: artisi kucuk tut, son seti gazla hedef RPE ustune tasirma.';
-    }
-    return 'Compound hareket: dinlenmeyi kisma; brace ve teknik sabit kalsin.';
-  }
-
-  if (action === 'down') {
-    return 'Izolasyon hareketi: savurma yok, eksantrigi kontrol et ve kasi bilincli sik.';
-  }
-  if (action === 'up') {
-    return 'Izolasyon hareketi: kilo artsa bile tempo bozulmasin, gerilim kas uzerinde kalsin.';
-  }
-  return 'Izolasyon hareketi: hareketi degistirme; once daha temiz tempo ya da +1 tekrar kovala.';
 };
 
 const getISOWeekKey = (dateStr: string) => {
@@ -555,241 +465,6 @@ const getISOWeekKey = (dateStr: string) => {
   const week = 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 24 * 3600 * 1000));
   const year = target.getUTCFullYear();
   return `${year}-W${String(week).padStart(2, '0')}`;
-};
-
-const getSessionStats = (
-  exerciseId: string,
-  date: string,
-  targetSets: number,
-  targetRep: number | null
-) => {
-  const sets = getSetsForDate(exerciseId, date);
-  if (sets.length === 0) {
-    return {
-      maxWeight: 0,
-      lastRir: null as number | null,
-      completionRate: null as number | null,
-      setCount: 0,
-    };
-  }
-
-  const maxWeight = Math.max(...sets.map((set) => set.weight));
-  const lastRir =
-    [...sets]
-      .sort((a, b) => a.setIndex - b.setIndex)
-      .reverse()
-      .find((set) => set.rir !== null && set.rir !== undefined)?.rir ?? null;
-
-  let completionRate: number | null = null;
-  if (targetRep !== null && targetSets > 0) {
-    const scoredSets = sets.filter((set) => set.reps !== null && set.reps !== undefined);
-    if (scoredSets.length > 0) {
-      const completed = scoredSets.filter((set) => (set.reps ?? 0) >= targetRep).length;
-      completionRate = completed / targetSets;
-    }
-  }
-
-  return {
-    maxWeight,
-    lastRir,
-    completionRate,
-    setCount: sets.length,
-  };
-};
-
-const getSessionE1RM = (exerciseId: string, date: string, targetRep: number | null) => {
-  const sets = getSetsForDate(exerciseId, date);
-  if (sets.length === 0) return null;
-
-  const estimates = sets
-    .map((set) => {
-      const reps = set.reps ?? targetRep;
-      if (reps === null || reps === undefined) return null;
-      const rir = set.rir ?? 0;
-      const effectiveReps = reps + rir;
-      return set.weight * (1 + effectiveReps / 30);
-    })
-    .filter((value): value is number => value !== null && !Number.isNaN(value));
-
-  if (estimates.length === 0) return null;
-  return Math.max(...estimates);
-};
-
-const weeklySuggestions = computed(() => {
-  return todaysExercises.value
-    .map((exercise) => {
-      const hasTodaySets = getTodaySets(exercise.id).length > 0;
-      const targetRep = getTargetRepHint(exercise.targetReps);
-      const noteTargetRpe = getTargetRpe(exercise.notes || '');
-      const targetRpe = noteTargetRpe ?? DEFAULT_TARGET_RPE;
-      const targetRir = getTargetRir(targetRpe);
-      const targetRirMin = Math.max(0, targetRir - 1);
-      const targetRirMax = targetRir + 1;
-      const dailySummaries = getExerciseDailySummaries(exercise.id);
-      if (dailySummaries.length === 0) {
-        const disciplineNote = getDisciplineNote(exercise, 'hold', null);
-        return {
-          exerciseId: exercise.id,
-          name: exercise.name,
-          sets: `${exercise.targetSets}x${exercise.targetReps}`,
-          message:
-            `Bugun ilk kayit. Hedef RPE ${targetRpe} (~${targetRir} RIR). Agirligi ego ile degil bu hisse gore sec, son sette kalan tekrari yaz. ${disciplineNote}`,
-        };
-      }
-
-      const recentLogs = dailySummaries.slice(0, PROGRESSION_LOOKBACK);
-      const last = recentLogs[0];
-      if (!last) return null;
-
-      const prev = recentLogs[1];
-      const prev2 = recentLogs[2];
-
-      const step = getWeightStep(exercise.muscleGroup || null);
-      const lastStats = getSessionStats(exercise.id, last.date, exercise.targetSets, targetRep);
-      const prevStats = prev ? getSessionStats(exercise.id, prev.date, exercise.targetSets, targetRep) : null;
-      const lastRir = lastStats.lastRir;
-      const prevRir = prevStats?.lastRir ?? null;
-
-      const e1rmValues = recentLogs
-        .map((entry) => getSessionE1RM(exercise.id, entry.date, targetRep))
-        .filter((value): value is number => value !== null);
-      const currentE1rm = e1rmValues[0] ?? null;
-      const previousE1rm = e1rmValues[1] ?? null;
-
-      const completionRate = lastStats.completionRate;
-      const completedAllSets =
-        completionRate !== null
-          ? completionRate >= 1
-          : lastStats.setCount >= exercise.targetSets;
-      const missedTooManyReps =
-        completionRate !== null
-          ? completionRate < 0.75
-          : lastStats.setCount < exercise.targetSets;
-      const easierThanTarget = lastRir !== null && lastRir > targetRirMax;
-      const harderThanTarget = lastRir !== null && lastRir < targetRirMin;
-      const onTarget = lastRir !== null && lastRir >= targetRirMin && lastRir <= targetRirMax;
-      const previousOnTarget = prevRir !== null && prevRir >= targetRirMin && prevRir <= targetRirMax;
-
-      let trend: 'up' | 'down' | 'flat' = 'flat';
-      if (prev && prev2) {
-        if (last.maxWeight < prev.maxWeight && prev.maxWeight <= prev2.maxWeight) trend = 'down';
-        if (last.maxWeight > prev.maxWeight && prev.maxWeight >= prev2.maxWeight) trend = 'up';
-      } else if (prev) {
-        if (last.maxWeight < prev.maxWeight) trend = 'down';
-        if (last.maxWeight > prev.maxWeight) trend = 'up';
-      }
-
-      let suggestedWeight = last.maxWeight;
-      let action: 'up' | 'down' | 'hold' = 'hold';
-      let actionReason = 'hold';
-
-      if (harderThanTarget) {
-        suggestedWeight = Math.max(0, last.maxWeight - step);
-        action = 'down';
-        actionReason = 'rpe-too-high';
-      } else if (missedTooManyReps) {
-        suggestedWeight = Math.max(0, last.maxWeight - step);
-        action = 'down';
-        actionReason = 'reps-missed';
-      } else if (easierThanTarget && completedAllSets) {
-        suggestedWeight = last.maxWeight + step;
-        action = 'up';
-        actionReason = 'rpe-too-low';
-      } else if (onTarget && completedAllSets && previousOnTarget && trend !== 'down') {
-        suggestedWeight = last.maxWeight + step;
-        action = 'up';
-        actionReason = 'progress';
-      } else if (trend === 'down' && !completedAllSets) {
-        suggestedWeight = Math.max(0, last.maxWeight - step);
-        action = 'down';
-        actionReason = 'trend-down';
-      }
-
-      const repsNote =
-        action === 'hold' && targetRep !== null && completedAllSets
-          ? 'Agirlik sabit. Sonraki antrenmanda +1 tekrar ya da daha temiz form hedefle.'
-          : action === 'hold' && targetRep !== null
-            ? 'Ayni kiloda once tum setleri hedef tekrar kalitesinde tamamla.'
-          : null;
-
-      const successNote =
-        completionRate !== null
-          ? `Hedef tekrar tamamlama: %${Math.round(completionRate * 100)}.`
-          : targetRep !== null
-            ? 'Rep verisi eksik; tamamlama yerine set sayisi ve RIR ile degerlendirildi.'
-            : 'Hedef tekrar bulunamadi; RIR ve trend ile degerlendirildi.';
-
-      const targetNote =
-        noteTargetRpe !== null
-          ? `Hedef RPE ${targetRpe} (~${targetRir} RIR).`
-          : `Notlarda RPE yok; varsayilan hedef RPE ${targetRpe} (~${targetRir} RIR).`;
-
-      const actualRpeNote =
-        lastRir !== null
-          ? `Son set: RPE ${getRpeFromRir(lastRir)} (~${lastRir} RIR).`
-          : 'Son set RIR girilmedi; RPE bazli oneri zayifladi.';
-
-      const e1rmNote =
-        currentE1rm !== null
-          ? previousE1rm !== null
-            ? `e1RM ${formatWeight(currentE1rm)} kg (${currentE1rm >= previousE1rm ? 'yukari' : 'asagi'}).`
-            : `e1RM ${formatWeight(currentE1rm)} kg.`
-          : null;
-
-      const todayNote = hasTodaySets ? null : 'Bugun icin oneri:';
-
-      let actionNote = '';
-      if (action === 'up') {
-        actionNote =
-          actionReason === 'rpe-too-low'
-            ? `Hedef RPE'nin altinda kaldin. Sonraki antrenmanda ${formatWeight(suggestedWeight)} kg dene (adim ${formatWeight(step)}).`
-            : `Iki seanstir hedefi kontrol ettin. Kucuk artis zamani: ${formatWeight(suggestedWeight)} kg.`;
-      } else if (action === 'down') {
-        actionNote =
-          actionReason === 'rpe-too-high'
-            ? `Set hedef RPE'nin ustune tasmis. ${formatWeight(suggestedWeight)} kg ile formu ve kontrolden cikmayan hizi koru.`
-            : `Hedef tekrarlar dagildi. ${formatWeight(suggestedWeight)} kg ile tekrar oturt.`;
-      } else {
-        actionNote =
-          lastRir === null
-            ? 'Agirlik sabit. Sonraki sefer ozellikle son set RIR gir ki sistem RPE bazli daha net yonlendirsin.'
-            : 'Agirlik uygun gorunuyor. Formu bozma, dinlenmeyi kontrol et ve temiz tekrar kovala.';
-      }
-
-      const disciplineNote = getDisciplineNote(exercise, action, lastRir);
-
-      const messageParts = [
-        todayNote,
-        targetNote,
-        `Son ${recentLogs.length} antrenmanda en iyi ${formatWeight(last.maxWeight)} kg.`,
-        actualRpeNote,
-        successNote,
-        e1rmNote,
-        actionNote,
-        repsNote,
-        disciplineNote,
-      ].filter(Boolean);
-
-      return {
-        exerciseId: exercise.id,
-        name: exercise.name,
-        sets: `${exercise.targetSets}x${exercise.targetReps}`,
-        message: messageParts.join(' '),
-      };
-    })
-    .filter((item): item is { exerciseId: string; name: string; sets: string; message: string } => item !== null);
-});
-
-const suggestionByExercise = computed(() => {
-  const map = new Map<string, string>();
-  weeklySuggestions.value.forEach((item) => {
-    map.set(item.exerciseId, item.message);
-  });
-  return map;
-});
-
-const getSuggestionForExercise = (exerciseId: string) => {
-  return suggestionByExercise.value.get(exerciseId) || '';
 };
 
 const weeklyProgress = computed(() => {
